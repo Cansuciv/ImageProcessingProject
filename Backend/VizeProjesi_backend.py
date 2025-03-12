@@ -9,8 +9,8 @@ CORS(app)  # React ile bağlantıyı açar
 
 UPLOAD_FOLDER = "uploads"
 PROCESSED_FOLDER = "processed"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 # Resmi Açma
 def open_image(img_path):
@@ -21,13 +21,26 @@ def open_image(img_path):
 # Resmi Kaydetme
 def save_image(image, filename):
     save_path = os.path.join(PROCESSED_FOLDER, filename)
-    cv2.imwrite(save_path, image)
+    cv2.imwrite("Kaydedilen resim.png", save_path)
     return save_path
 
-# Resmin Parlaklığını ve Kontrasını artırma/azaltma
-def brightness_contrast_control(image, brightness=50, contrast=1.5):
-    image_brightness_contrast = cv2.convertScaleAbs(image, alpha=contrast, beta=brightness)
-    cv2.imshow("Parlaklik ve Kontrast", image_brightness_contrast)
+# Parlaklık artırma fonksiyonu
+def adjust_brightness(image, brightness=50):
+    # Resmin her pikseline parlaklık ekler
+    x, y, z = image.shape
+    for i in range(x):
+        for j in range(y):
+            for k in range(z):
+                image[i, j, k] = image[i, j, k] + brightness
+                if image[i, j, k] > 255:
+                    image[i, j, k] = 255
+    return image
+
+# Kontrast artırma fonksiyonu
+def adjust_contrast(image, contrast=1.5):
+    # Resmin kontrastını artırmak için scale factor uygulama
+    image_contrast = cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+    return image_contrast
 
 # Resmin Negatifini alma: Her pixelin renginin tersine çevrilmesi ile olur
 # Örnek: Kırmızı(255,0,0) -> Cyan(0,255,255)
@@ -110,7 +123,9 @@ def process_image(image, operation):
     elif operation == "grayscale":
         return convert_gray(image)
     elif operation == "brightness":
-        return brightness_contrast_control(image)
+        return adjust_brightness(image)
+    elif operation == "contrast":
+        return adjust_contrast(image)
     elif operation == "red":
         return red_image(image)
     elif operation == "blue":
