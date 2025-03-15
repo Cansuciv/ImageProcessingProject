@@ -78,6 +78,7 @@ export default function GoruntuIsleme() {
           <VisuallyHiddenInput type="file" onChange={handleFileChange} />
         </Button>
 
+
         {/* Orijinal ve işlenmiş resimleri yan yana göster */}
         {originalImage && (
           <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 3 }}>
@@ -95,7 +96,7 @@ export default function GoruntuIsleme() {
             </Box>
           </Box>
         )}
- 
+
 
         <Button
           variant="contained"
@@ -180,6 +181,14 @@ export default function GoruntuIsleme() {
               </Box>
             </Collapse>
           </Box>
+
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}
+            onClick={() => processImage("negative")}
+          >
+            Negatifi
+          </Button>
 
         </Box>
       </Box>
