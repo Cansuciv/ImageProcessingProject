@@ -9,8 +9,6 @@ CORS(app)  # React ile bağlantıyı açar
 
 UPLOAD_FOLDER = "uploads"
 PROCESSED_FOLDER = "processed"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 # Resmi Açma
 def open_image(img_path):
@@ -20,7 +18,7 @@ def open_image(img_path):
 # Resmi Kaydetme
 def save_image(image, filename):
     save_path = os.path.join(PROCESSED_FOLDER, filename)
-    cv2.imwrite(save_path, image)  # Yanlış parametre düzeltildi
+    cv2.imwrite(save_path, image) 
     return save_path
 
 # Resmi Griye çevirme
@@ -55,7 +53,7 @@ def negative_image(image):
 
 # Parlaklık artırma/azaltma fonksiyonu
 def adjust_brightness(image, brightness=50):
-    image_brightness = cv2.add(image, np.full(image.shape, brightness, dtype=np.uint8))  # Daha güvenli yöntem
+    image_brightness = cv2.add(image, np.full(image.shape, brightness, dtype=np.uint8))
     return image_brightness
 
 # Kontrast artırma fonksiyonu
@@ -80,10 +78,10 @@ def process_image(image, operation, value=None):
     elif operation == "contrast":
         return adjust_contrast(image, value)
     else:
-        return image  # Tanımsız işlemde orijinal resmi döndür
+        return image
 
 
-@app.route("/process", methods=["POST"])
+@app.route("/process", methods=["POST"]) 
 def process():
     file = request.files.get("image")
     operation = request.form.get("operation")

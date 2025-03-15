@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { useState } from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -6,7 +7,7 @@ import Typography from "@mui/material/Typography";
 import { Box } from "@mui/material";
 import Slider from "@mui/material/Slider";
 import Collapse from "@mui/material/Collapse";
-
+import axios from "axios";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -46,28 +47,14 @@ export default function GoruntuIsleme() {
       formData.append("value", value);
     }
 
-    try {
-      const response = await fetch("http://127.0.0.1:5000/process", {
-        method: "POST",
-        body: formData,
-      });
+    const response = await axios.post("http://127.0.0.1:5000/process", formData, { responseType: "blob" })
+    const imageUrl = URL.createObjectURL(response.data);
+    setProcessedImages((prevImages) => [...prevImages, imageUrl]);
 
-      if (!response.ok) {
-        throw new Error("Görsel işlenirken hata oluştu!");
-      }
-
-      const imageBlob = await response.blob();
-      const imageUrl = URL.createObjectURL(imageBlob);
-      
-      // İşlenen resmi diziye ekle
-      setProcessedImages((prevImages) => [...prevImages, imageUrl]);
-    } catch (error) {
-      console.error(error);
-    }
   };
 
-  // Son işlenen resmi göster
-  const currentImage = processedImages.length > 0 ? processedImages[processedImages.length - 1] : originalImage;
+
+
 
   return (
     <Box sx={{
@@ -79,6 +66,7 @@ export default function GoruntuIsleme() {
         {`html, body {margin: 0;padding: 0; width: 100%;height: 100%; background-color: #E3F2FD;overflow-x: hidden;  }`}
       </style>
 
+      <title>Görüntü İşleme</title>
 
       <Box sx={{ textAlign: "center", padding: 2 }}>
         <Typography variant="h4" gutterBottom >
@@ -99,10 +87,15 @@ export default function GoruntuIsleme() {
             </Box>
             <Box>
               <Typography variant="h6">İşlenmiş Resim</Typography>
-              {currentImage && <img src={currentImage} alt="İşlenmiş" style={{ maxWidth: "400px", maxHeight: "400px", border: "2px solid gray" }} />}
+              <img
+                src={processedImages.length > 0 ? processedImages.at(-1) : originalImage}
+                alt="İşlenmiş"
+                style={{ maxWidth: "400px", maxHeight: "400px", border: "2px solid gray" }}
+              />
             </Box>
           </Box>
         )}
+ 
 
         <Button
           variant="contained"
