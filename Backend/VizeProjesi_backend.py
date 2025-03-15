@@ -5,7 +5,8 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app)  # React ile bağlantıyı açar
+CORS(app)# React ile bağlantıyı açar
+
 
 UPLOAD_FOLDER = "uploads"
 PROCESSED_FOLDER = "processed"
@@ -53,8 +54,16 @@ def negative_image(image):
 
 # Parlaklık artırma/azaltma fonksiyonu
 def adjust_brightness(image, brightness=50):
-    image_brightness = cv2.add(image, np.full(image.shape, brightness, dtype=np.uint8))
-    return image_brightness
+    x, y, z = image.shape
+    for i in range(x):
+        for j in range(y):
+            for k in range(z):
+                # Parlaklık değerini ekle
+                image[i, j, k] = image[i, j, k] + brightness
+                # Piksel değerini 0-255 aralığına sınırla
+                if image[i, j, k] > 255:
+                    image[i, j, k] = 255
+    return image
 
 # Kontrast artırma fonksiyonu
 def adjust_contrast(image, contrast=1.5):
