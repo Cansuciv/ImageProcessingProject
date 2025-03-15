@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -22,46 +21,49 @@ const VisuallyHiddenInput = styled("input")({
 });
 
 export default function GoruntuIsleme() {
-  const [originalImage, setOriginalImage] = useState(null);
-  const [processedImages, setProcessedImages] = useState([]); // Resimleri dizi olarak saklayacağız
-  const [brightnessOn, setBrightnessOn] = useState(false);
-  const [contrastOn, setContrastOn] = useState(false);
-  const [brightness, setBrightness] = useState(0);
-  const [contrast, setContrast] = useState(0);
+  const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
+  const [processedImage, setProcessedImage] = useState(null); // İşlenmiş resmi tutacak state
 
+  const [brightnessOn, setBrightnessOn] = useState(false); // Parlaklığı arttırmak/azaltmak için slider'ı açacak
+  const [contrastOn, setContrastOn] = useState(false); // Konstratı arttırmak/azaltmak için slider'ı açacak
+
+
+  // Yüklenen dosyaları göstermek
   const handleFileChange = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setOriginalImage(URL.createObjectURL(file));
-      setProcessedImages([]); // Yeni dosya yüklenince işlenmiş resimleri sıfırla
-    }
+    const imageUrl = URL.createObjectURL(file);
+    setOriginalImage(imageUrl);
+    setProcessedImage(imageUrl); // İşlenmiş resmi orijinal resimle olarak (varsayılann şekilde) başlatılıyor
+
   };
 
-  const processImage = async (operation, value = null) => {
+  const processImage = async (operation) => {
     const formData = new FormData();
     const fileInput = document.querySelector('input[type="file"]');
 
-    formData.append("image", fileInput.files[0]);
+    // İşlenmiş resmi kullanarak yeni işlem yapmak
+    const response = await fetch(processedImage);
+    const blob = await response.blob();
+
+    formData.append("image", blob, fileInput.files[0].name); // İşlenmiş resmi gönder
     formData.append("operation", operation);
-    if (value !== null) {
-      formData.append("value", value);
-    }
 
-    const response = await axios.post("http://127.0.0.1:5000/process", formData, { responseType: "blob" })
-    const imageUrl = URL.createObjectURL(response.data);
-    setProcessedImages((prevImages) => [...prevImages, imageUrl]);
-
+    //Sunucuya istek göndermek
+    const responseFromServer = await axios.post("http://127.0.0.1:5000/process", formData, { responseType: "blob" });
+    
+    //Sunucudan gelen işlenmiş resimleri göstermek
+    const imageUrl = URL.createObjectURL(responseFromServer.data);
+    setProcessedImage(imageUrl); // İşlenmiş resmi güncelle
   };
 
-
-
+  // İşlenmiş resmi orijinal resme geri döndürmek için kullanılır
+  const resetToOriginal = () => {
+    setProcessedImage(originalImage); 
+  };
 
   return (
-    <Box sx={{
-      backgroundColor: "#E3F2FD", minHeight: "100vh", width: "100vw", margin: 0,
-      padding: 0, display: "flex", flexDirection: "column",
-    }} >
-      {/*backgroundColor'da kenarda kalan beyaz boşlukları yok etmek için kullanıldı */}
+    <Box >
+      {/* Arkalan rengi ayarlama. Box içinde sx={{backgroundColor}} yapınca kenarlarda beyaz kısımlarkalıyor*/}
       <style>
         {`html, body {margin: 0;padding: 0; width: 100%;height: 100%; background-color: #E3F2FD;overflow-x: hidden;  }`}
       </style>
@@ -78,8 +80,6 @@ export default function GoruntuIsleme() {
           <VisuallyHiddenInput type="file" onChange={handleFileChange} />
         </Button>
 
-
-        {/* Orijinal ve işlenmiş resimleri yan yana göster */}
         {originalImage && (
           <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 3 }}>
             <Box>
@@ -89,7 +89,7 @@ export default function GoruntuIsleme() {
             <Box>
               <Typography variant="h6">İşlenmiş Resim</Typography>
               <img
-                src={processedImages.length > 0 ? processedImages.at(-1) : originalImage}
+                src={processedImage}
                 alt="İşlenmiş"
                 style={{ maxWidth: "400px", maxHeight: "400px", border: "2px solid gray" }}
               />
@@ -97,11 +97,10 @@ export default function GoruntuIsleme() {
           </Box>
         )}
 
-
         <Button
           variant="contained"
           sx={{ backgroundColor: "purple", mx: "auto", marginTop: 5, textTransform: "none", fontSize: 20 }}
-          onClick={() => setProcessedImages([])} // İşlenmiş resimleri sıfırla
+          onClick={resetToOriginal} // İşlenmiş resmi orijinal resme geri döndür
         >
           Orjinal Resme Geri dön
         </Button>
@@ -151,9 +150,8 @@ export default function GoruntuIsleme() {
             <Collapse in={brightnessOn}>
               <Box sx={{ width: 120, marginTop: 2 }}>
                 <Slider
-                  value={brightness}
-                  onChange={(e, newValue) => setBrightness(newValue)}
-                  onChangeCommitted={() => processImage("brightness", brightness)}
+            
+                  onChangeCommitted={() => processImage("brightness")}
                   max={255}
                   color="secondary"
                 />
@@ -172,9 +170,7 @@ export default function GoruntuIsleme() {
             <Collapse in={contrastOn}>
               <Box sx={{ width: 120, marginTop: 2 }}>
                 <Slider
-                  value={contrast}
-                  onChange={(e, newValue) => setContrast(newValue)}
-                  onChangeCommitted={() => processImage("contrast", contrast)}
+                  onChangeCommitted={() => processImage("contrast")}
                   max={255}
                   color="secondary"
                 />

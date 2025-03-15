@@ -85,17 +85,12 @@ def process_image(image, operation, value=None):
 def process():
     file = request.files.get("image")
     operation = request.form.get("operation")
-    
-    if not file or not operation:
-        return jsonify({"error": "Dosya veya işlem belirtilmemiş."}), 400
-    
+
     img_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(img_path)
     
     image = open_image(img_path)
-    if image is None:
-        return jsonify({"error": "Geçersiz resim formatı."}), 400  # Geçersiz resim dosyası kontrolü
-    
+  
     processed_img = process_image(image, operation)
     processed_path = save_image(processed_img, "processed.jpg")
 
