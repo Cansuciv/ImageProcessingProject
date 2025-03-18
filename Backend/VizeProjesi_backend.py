@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 app = Flask(__name__)
-CORS(app)# React ile bağlantıyı açar
+CORS(app)
 
 
 UPLOAD_FOLDER = "uploads"
@@ -52,18 +52,13 @@ def blue_image(image):
 def negative_image(image):
     return cv2.bitwise_not(image)
 
+
 # Parlaklık artırma/azaltma fonksiyonu
-def adjust_brightness(image, brightness=50):
-    x, y, z = image.shape
-    for i in range(x):
-        for j in range(y):
-            for k in range(z):
-                # Parlaklık değerini ekle
-                image[i, j, k] = image[i, j, k] + brightness
-                # Piksel değerini 0-255 aralığına sınırla
-                if image[i, j, k] > 255:
-                    image[i, j, k] = 255
-    return image
+def adjust_brightness(image, brightness=127):
+    adjusted_brightness = brightness - 127
+    result = np.clip(image.astype(np.int16) + adjusted_brightness, 0, 255).astype(np.uint8)
+    return result
+
 
 # Kontrast artırma fonksiyonu
 def adjust_contrast(image, contrast=1.5):
@@ -82,25 +77,28 @@ def process_image(image, operation, value=None):
         return blue_image(image)
     elif operation == "negative":
         return negative_image(image)
-    elif operation == "brightness":
+    elif operation == "brightness" and value is not None:
         return adjust_brightness(image, value)
-    elif operation == "contrast":
+    elif operation == "contrast" and value is not None:
         return adjust_contrast(image, value)
     else:
         return image
 
 
-@app.route("/process", methods=["POST"]) 
+@app.route("/process", methods=["POST"])
 def process():
     file = request.files.get("image")
     operation = request.form.get("operation")
+    value = request.form.get("value")  # Parlaklık değeri (0-255)
 
+    if value is not None:
+        value = int(value)  # String değeri sayıya çevir
+        
     img_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(img_path)
-    
+
     image = open_image(img_path)
-  
-    processed_img = process_image(image, operation)
+    processed_img = process_image(image, operation, value)
     processed_path = save_image(processed_img, "processed.jpg")
 
     return send_file(processed_path, mimetype="image/jpeg")
