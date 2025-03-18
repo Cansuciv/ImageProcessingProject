@@ -54,20 +54,39 @@ def negative_image(image):
 
 
 # Parlaklık artırma/azaltma fonksiyonu
-def adjust_brightness(image, brightness=127):
-    adjusted_brightness = brightness - 127
-    result = np.clip(image.astype(np.int16) + adjusted_brightness, 0, 255).astype(np.uint8)
-    return result
+def adjust_brightness(image, brightness):
+    x, y, z = image.shape
+    for i in range(x):
+        for j in range(y):
+            for k in range(z):
+                image[i, j, k] = image[i, j, k] + brightness
+                if image[i, j, k] > 255: 
+                    image[i, j, k] = 255
+                elif image[i, j, k] < 0: 
+                    image[i, j, k] = 0
+    return image
+
+def Thresholding(image, threshold):
+    x,y,z = image.shape
+    for i in range(x):
+        for j in range(y):
+            for k in range(z):
+                if image[i,j,k] >= threshold:
+                    image[i,j,k] = 255
+                else:
+                    image[i,j,k] = 0
+    return image
 
 
 # Kontrast artırma fonksiyonu
-def adjust_contrast(image, contrast=1.5):
+def adjust_contrast(image, contrast):
     return cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+
 
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
-    if operation == "grayscale":
+    if operation == "convert_gray":
         return convert_gray(image)
     elif operation == "red":
         return red_image(image)
@@ -79,6 +98,8 @@ def process_image(image, operation, value=None):
         return negative_image(image)
     elif operation == "brightness" and value is not None:
         return adjust_brightness(image, value)
+    elif operation == "thresholding" and value is not None:
+        return Thresholding(image, value)
     elif operation == "contrast" and value is not None:
         return adjust_contrast(image, value)
     else:

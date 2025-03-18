@@ -24,8 +24,12 @@ export default function GorntuIsleme() {
   const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
   const [processedImage, setProcessedImage] = useState(null); // İşlenmiş resmi tutacak state
   const [brightnessOn, setBrightnessOn] = useState(false); // Parlaklığı arttırmak/azaltmak için slider'ı açacak
-  const [contrastOn, setContrastOn] = useState(false); // Konstratı arttırmak/azaltmak için slider'ı açacak
-  const [brightnessValue, setBrightnessValue] = useState(127); // Başlangıç değeri 127 // Parlaklık değerini tutacak state
+  //const [contrastOn, setContrastOn] = useState(false); // Konstratı arttırmak/azaltmak için slider'ı açacak
+  const [thresholdingOn, setThresholdingOn] = useState(false); // Kontrast değerini tutacak state
+  const [brightnessValue, setBrightnessValue] = useState(127); // Parlaklık değerini tutacak state
+  //const [contrastValue, setContrastValue] = useState(50); // Kontrast değerini tutacak state
+  const [thresholdingValue, setThresholdingValue] = useState(127); // Kontrast değerini tutacak state
+
 
   const processImage = async (operation, value = null) => {
     //FormData: Dosya ve diğer verileri sunucuya göndermeye yarayan özel bir veri yapısıdır.
@@ -52,9 +56,11 @@ export default function GorntuIsleme() {
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage)
-    setBrightnessValue(127);
+    setBrightnessValue(127)
+    setThresholdingValue(127)
+    //setContrastValue(50)
 
-  }
+  };
 
   const onImageChange = (event) => {
     if (event.target.files && event.target.files[0]) {
@@ -67,6 +73,11 @@ export default function GorntuIsleme() {
   const handleBrightnessChange = (event, newValue) => {
     setBrightnessValue(newValue); // Slider değerini güncelle (0-255)
     processImage("brightness", newValue); // İşlenmiş değeri gönder
+  };
+
+  const handleThresholdingChange = (event, newValue) => {
+    setThresholdingValue(newValue); // Slider değerini güncelle (0-255)
+    processImage("thresholding", newValue); // İşlenmiş değeri gönder
   };
 
   return (
@@ -110,9 +121,9 @@ export default function GorntuIsleme() {
 
         <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2} marginTop="50px" textTransform={"none"}>
           <Button variant="contained" disableElevation
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}
-            onClick={() => processImage("grayscale")}>
-            Gri Resim
+            sx={{ backgroundColor: "purple", width: "132px", height: "50px", textTransform: "none", fontSize: 18 }}
+            onClick={() => processImage("convert_gray")}>
+            Gri'ye Çevir
           </Button>
 
           <Button variant="contained" disableElevation
@@ -133,6 +144,12 @@ export default function GorntuIsleme() {
             Mavi
           </Button>
 
+          <Button variant="contained" disableElevation
+            onClick={() => processImage("negative")}
+            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
+            Negatifi
+          </Button>
+
           <Box>
             <Button variant="contained" disableElevation
               onClick={() => setBrightnessOn(!brightnessOn)}
@@ -151,11 +168,46 @@ export default function GorntuIsleme() {
             </Collapse>
           </Box>
 
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("negative")}
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Negatifi
-          </Button>
+          <Box>
+            <Button variant="contained" disableElevation
+              onClick={() => setThresholdingOn(!thresholdingOn)}
+              sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
+              Eşikleme
+            </Button>
+            <Collapse in={thresholdingOn}>
+              <Slider
+                value={thresholdingValue}
+                onChange={handleThresholdingChange}
+                aria-label="Thresholding"
+                valueLabelDisplay="auto"
+                min={0}
+                max={255}
+              />
+            </Collapse>
+          </Box>
+
+
+
+
+          {/* <Box>
+            <Button variant="contained" disableElevation
+              onClick={() => setContrastOn(!contrastOn)}
+              sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
+              Kontrast
+            </Button>
+            <Collapse in={contrastOn}>
+              <Slider
+                value={contrastValue}
+                onChange={handleContrastChange}
+                aria-label="contrast"
+                valueLabelDisplay="auto"
+                min={0}
+                max={100}
+              />
+            </Collapse>
+          </Box> */}
+
+
 
         </Box>
 
