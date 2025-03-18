@@ -25,7 +25,7 @@ export default function GorntuIsleme() {
   const [processedImage, setProcessedImage] = useState(null); // İşlenmiş resmi tutacak state
   const [brightnessOn, setBrightnessOn] = useState(false); // Parlaklığı arttırmak/azaltmak için slider'ı açacak
   const [contrastOn, setContrastOn] = useState(false); // Konstratı arttırmak/azaltmak için slider'ı açacak
-  const [brightnessValue, setBrightnessValue] = useState(50); // Parlaklık değerini tutacak state
+  const [brightnessValue, setBrightnessValue] = useState(127); // Başlangıç değeri 127 // Parlaklık değerini tutacak state
 
   const processImage = async (operation, value = null) => {
     //FormData: Dosya ve diğer verileri sunucuya göndermeye yarayan özel bir veri yapısıdır.
@@ -52,6 +52,8 @@ export default function GorntuIsleme() {
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage)
+    setBrightnessValue(127);
+
   }
 
   const onImageChange = (event) => {
@@ -60,11 +62,11 @@ export default function GorntuIsleme() {
       setOriginalImage(imgUrl);
       setProcessedImage(imgUrl);
     }
-  }
+  };
 
   const handleBrightnessChange = (event, newValue) => {
-    setBrightnessValue(newValue);
-    processImage("brightness", newValue);
+    setBrightnessValue(newValue); // Slider değerini güncelle (0-255)
+    processImage("brightness", newValue); // İşlenmiş değeri gönder
   };
 
   return (
@@ -141,9 +143,9 @@ export default function GorntuIsleme() {
               <Slider
                 value={brightnessValue}
                 onChange={handleBrightnessChange}
-                aria-label="Default"
+                aria-label="Brightness"
                 valueLabelDisplay="auto"
-                color="secondary"
+                min={0}
                 max={255}
               />
             </Collapse>
