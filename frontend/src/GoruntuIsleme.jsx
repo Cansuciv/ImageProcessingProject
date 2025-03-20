@@ -29,10 +29,9 @@ export default function GorntuIsleme() {
   const [brightnessValue, setBrightnessValue] = useState(127); // Parlaklık değerini tutacak state
   //const [contrastValue, setContrastValue] = useState(50); // Kontrast değerini tutacak state
   const [thresholdingValue, setThresholdingValue] = useState(127); // Kontrast değerini tutacak state
-
+  const [histogramImage, setHistogramImage] = useState(null); // Histogram grafiği için 
 
   const processImage = async (operation, value = null) => {
-    //FormData: Dosya ve diğer verileri sunucuya göndermeye yarayan özel bir veri yapısıdır.
     const formData = new FormData();
     const fileInput = document.querySelector('input[type="file"]');
 
@@ -46,20 +45,25 @@ export default function GorntuIsleme() {
       formData.append("value", value);
     }
 
-    //Sunucuya istek göndermek
+    // Sunucuya istek göndermek
     const responseFromServer = await axios.post("http://127.0.0.1:5000/process", formData, { responseType: "blob" });
 
-    //Sunucudan gelen işlenmiş resimleri göstermek
+    // Sunucudan gelen işlenmiş resimleri göstermek
     const imageUrl = URL.createObjectURL(responseFromServer.data);
-    setProcessedImage(imageUrl); // İşlenmiş resmi güncelle
+
+    if (operation === "histogram") {
+      setHistogramImage(imageUrl);
+    } else {
+      setProcessedImage(imageUrl);
+    }
   };
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage)
     setBrightnessValue(127)
     setThresholdingValue(127)
+    setHistogramImage(null);
     //setContrastValue(50)
-
   };
 
   const onImageChange = (event) => {
@@ -67,6 +71,7 @@ export default function GorntuIsleme() {
       const imgUrl = URL.createObjectURL(event.target.files[0]);
       setOriginalImage(imgUrl);
       setProcessedImage(imgUrl);
+      setHistogramImage(null);
     }
   };
 
@@ -99,17 +104,26 @@ export default function GorntuIsleme() {
         </Button>
 
         {originalImage && (
-          <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 3 }}>
-            <Box>
-              <Typography ariant="h6">Orijinal Resim</Typography>
-              <img src={originalImage} alt="Orijinal" style={{ marginTop: 10 }} />
-            </Box>
-            <Box>
-              <Typography ariant="h6">İşlenen Resim</Typography>
-              <img src={processedImage} alt="İşlenmiş" tyle={{ maxWidth: "400px", maxHeight: "400px", border: "2px solid gray" }}
-              />
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: 3 }}>
+            {/* Orijinal ve İşlenmiş Resimler */}
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 4 }}>
+              <Box>
+                <Typography variant="h6">Orijinal Resim</Typography>
+                <img src={originalImage} alt="Orijinal" style={{ marginTop: 10 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6">İşlenen Resim</Typography>
+                <img src={processedImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
+              </Box>
             </Box>
 
+            {/* Histogram Grafiği */}
+            {histogramImage && (
+              <Box>
+                <Typography variant="h6">Histogram Grafiği</Typography>
+                <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
+              </Box>
+            )}
           </Box>
         )}
 
@@ -185,6 +199,12 @@ export default function GorntuIsleme() {
               />
             </Collapse>
           </Box>
+
+          <Button variant="contained" disableElevation
+            onClick={() => processImage("histogram")} // Histogram işlemini tetikle
+            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
+            Histogram
+          </Button>
 
 
 

@@ -3,6 +3,8 @@ from flask_cors import CORS
 import cv2
 import numpy as np
 import os
+import matplotlib.pyplot as plt
+import io
 
 app = Flask(__name__)
 CORS(app)
@@ -66,7 +68,7 @@ def adjust_brightness(image, brightness):
                     image[i, j, k] = 0
     return image
 
-def Thresholding(image, threshold):
+def thresholding(image, threshold):
     x,y,z = image.shape
     for i in range(x):
         for j in range(y):
@@ -76,6 +78,26 @@ def Thresholding(image, threshold):
                 else:
                     image[i,j,k] = 0
     return image
+
+def histogram(image):
+    colors = ('b', 'g', 'r')  # OpenCV'de BGR sıralaması
+    plt.figure()
+    plt.title("Renkli Görüntü Histogramı")
+    plt.xlabel("Piksel Değeri")
+    plt.ylabel("Frekans")
+    for i, color in enumerate(colors):
+        hist = cv2.calcHist([image], [i], None, [256], [0, 256])
+        plt.plot(hist, color=color)
+    plt.xlim([0, 256])
+    
+    
+    # Histogram grafiğini bir görüntü olarak kaydet
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+    
+    return buf
 
 
 # Kontrast artırma fonksiyonu
@@ -99,7 +121,9 @@ def process_image(image, operation, value=None):
     elif operation == "brightness" and value is not None:
         return adjust_brightness(image, value)
     elif operation == "thresholding" and value is not None:
-        return Thresholding(image, value)
+        return thresholding(image, value)
+    elif operation == "histogram":
+        return histogram(image)
     elif operation == "contrast" and value is not None:
         return adjust_contrast(image, value)
     else:
@@ -119,9 +143,13 @@ def process():
     file.save(img_path)
 
     image = open_image(img_path)
+    
+    if operation == "histogram":
+        histogram_buf = histogram(image)
+        return send_file(histogram_buf, mimetype="image/png")
+    
     processed_img = process_image(image, operation, value)
     processed_path = save_image(processed_img, "processed.jpg")
-
     return send_file(processed_path, mimetype="image/jpeg")
 
 if __name__ == "__main__":
