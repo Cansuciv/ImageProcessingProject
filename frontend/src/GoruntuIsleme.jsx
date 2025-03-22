@@ -7,6 +7,14 @@ import Typography from "@mui/material/Typography";
 import axios from "axios";
 import Slider from "@mui/material/Slider";
 import Collapse from "@mui/material/Collapse";
+import ButtonGroup from '@mui/material/ButtonGroup';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import Grow from '@mui/material/Grow';
+import Paper from '@mui/material/Paper';
+import Popper from '@mui/material/Popper';
+import MenuItem from '@mui/material/MenuItem';
+import MenuList from '@mui/material/MenuList';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -20,16 +28,18 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
+const options = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linea Contrast'];
+
+
 export default function GorntuIsleme() {
   const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
   const [processedImage, setProcessedImage] = useState(null); // İşlenmiş resmi tutacak state
   const [brightnessOn, setBrightnessOn] = useState(false); // Parlaklığı arttırmak/azaltmak için slider'ı açacak
-  //const [contrastOn, setContrastOn] = useState(false); // Konstratı arttırmak/azaltmak için slider'ı açacak
   const [thresholdingOn, setThresholdingOn] = useState(false); // Kontrast değerini tutacak state
   const [brightnessValue, setBrightnessValue] = useState(127); // Parlaklık değerini tutacak state
-  //const [contrastValue, setContrastValue] = useState(50); // Kontrast değerini tutacak state
   const [thresholdingValue, setThresholdingValue] = useState(127); // Kontrast değerini tutacak state
   const [histogramImage, setHistogramImage] = useState(null); // Histogram grafiği için 
+  const [histogramEqualizationImage, setHistogramEqualizationImage] = useState(null); // Histogram eşitleme grafiği için 
 
   const processImage = async (operation, value = null) => {
     const formData = new FormData();
@@ -53,25 +63,57 @@ export default function GorntuIsleme() {
 
     if (operation === "histogram") {
       setHistogramImage(imageUrl);
+      if (histogramEqualizationImage)
+        setHistogramEqualizationImage(histogramEqualizationImage);
+    }
+    else if (operation === "histogram_equalization") {
+      setHistogramEqualizationImage(imageUrl);
+      if (histogramImage)
+        setHistogramImage(histogramImage);
     } else {
       setProcessedImage(imageUrl);
     }
   };
+
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage)
     setBrightnessValue(127)
     setThresholdingValue(127)
     setHistogramImage(null);
-    //setContrastValue(50)
+    setHistogramEqualizationImage(null);
+  };
+
+  const resizeImage = (file, width, height, callback) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          callback(blob);
+        }, file.type);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const onImageChange = (event) => {
     if (event.target.files && event.target.files[0]) {
-      const imgUrl = URL.createObjectURL(event.target.files[0]);
-      setOriginalImage(imgUrl);
-      setProcessedImage(imgUrl);
-      setHistogramImage(null);
+      const file = event.target.files[0];
+      resizeImage(file, 320, 300, (resizedImage) => {
+        const imgUrl = URL.createObjectURL(resizedImage);
+        setOriginalImage(imgUrl);
+        setProcessedImage(imgUrl);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+      });
     }
   };
 
@@ -83,6 +125,32 @@ export default function GorntuIsleme() {
   const handleThresholdingChange = (event, newValue) => {
     setThresholdingValue(newValue); // Slider değerini güncelle (0-255)
     processImage("thresholding", newValue); // İşlenmiş değeri gönder
+  };
+
+
+  const [open, setOpen] = React.useState(false);
+  const anchorRef = React.useRef(null);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+
+  const handleClick = () => {
+    console.info(`You clicked ${options[selectedIndex]}`);
+  };
+
+  const handleMenuItemClick = (event, index) => {
+    setSelectedIndex(index);
+    setOpen(false);
+  };
+
+  const handleToggle = () => {
+    setOpen((prevOpen) => !prevOpen);
+  };
+
+  const handleClose = (event) => {
+    if (anchorRef.current && anchorRef.current.contains(event.target)) {
+      return;
+    }
+
+    setOpen(false);
   };
 
   return (
@@ -118,12 +186,24 @@ export default function GorntuIsleme() {
             </Box>
 
             {/* Histogram Grafiği */}
-            {histogramImage && (
-              <Box>
-                <Typography variant="h6">Histogram Grafiği</Typography>
-                <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
+            {(histogramImage || histogramEqualizationImage) && (
+              <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
+                {histogramImage && (
+                  <Box>
+                    <Typography variant="h6">Histogram Grafiği</Typography>
+                    <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
+                  </Box>
+                )}
+                {histogramEqualizationImage && (
+                  <Box>
+                    <Typography variant="h6">Histogram Eşitleme Grafiği</Typography>
+                    <img src={histogramEqualizationImage} alt="Histogram Equalization" style={{ marginTop: 10 }} />
+                  </Box>
+                )}
               </Box>
             )}
+
+
           </Box>
         )}
 
@@ -206,26 +286,68 @@ export default function GorntuIsleme() {
             Histogram
           </Button>
 
+          <Button variant="contained" disableElevation
+            onClick={() => processImage("histogram_equalization")} // Histogram işlemini tetikle
+            sx={{ backgroundColor: "purple", width: "200px", height: "50px", textTransform: "none", fontSize: 18 }}>
+            Histogram Eşitleme
+          </Button>
 
 
+          <React.Fragment>
+            <ButtonGroup
+              variant="contained"
+              ref={anchorRef}
+              aria-label="Button group with a nested menu"
+            >
+              <Button sx={{ backgroundColor: "purple", textTransform: "none", fontSize: 18 }} onClick={handleClick}>{options[selectedIndex]}</Button>
+              <Button
+                sx={{ backgroundColor: "purple" }}
+                size="small"
+                aria-controls={open ? 'split-button-menu' : undefined}
+                aria-expanded={open ? 'true' : undefined}
+                aria-label="select merge strategy"
+                aria-haspopup="menu"
+                onClick={handleToggle}
+              >
+                <ArrowDropDownIcon sx={{ backgroundColor: "purple" }} />
+              </Button>
+            </ButtonGroup>
+            <Popper
 
-          {/* <Box>
-            <Button variant="contained" disableElevation
-              onClick={() => setContrastOn(!contrastOn)}
-              sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-              Kontrast
-            </Button>
-            <Collapse in={contrastOn}>
-              <Slider
-                value={contrastValue}
-                onChange={handleContrastChange}
-                aria-label="contrast"
-                valueLabelDisplay="auto"
-                min={0}
-                max={100}
-              />
-            </Collapse>
-          </Box> */}
+              sx={{ zIndex: 1 }}
+              open={open}
+              anchorEl={anchorRef.current}
+              role={undefined}
+              transition
+              disablePortal
+            >
+              {({ TransitionProps, placement }) => (
+                <Grow
+                  {...TransitionProps}
+                  style={{
+                    transformOrigin:
+                      placement === 'bottom' ? 'center top' : 'center bottom',
+                  }}
+                >
+                  <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+                    <ClickAwayListener onClickAway={handleClose}>
+                      <MenuList id="split-button-menu" autoFocusItem >
+                        {options.map((option, index) => (
+                          <MenuItem
+                            key={option}
+                            selected={index === selectedIndex}
+                            onClick={(event) => handleMenuItemClick(event, index)}
+                          >
+                            {option}
+                          </MenuItem>
+                        ))}
+                      </MenuList>
+                    </ClickAwayListener>
+                  </Paper>
+                </Grow>
+              )}
+            </Popper>
+          </React.Fragment>
 
 
 

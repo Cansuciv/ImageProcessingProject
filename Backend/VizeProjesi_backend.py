@@ -16,7 +16,9 @@ PROCESSED_FOLDER = "processed"
 # Resmi Açma
 def open_image(img_path):
     img_read = cv2.imread(img_path)
-    return img_read
+    resize_image = cv2.resize(img_read, (320, 300))
+    return resize_image 
+
 
 # Resmi Kaydetme
 def save_image(image, filename):
@@ -81,25 +83,54 @@ def thresholding(image, threshold):
 
 def histogram(image):
     colors = ('b', 'g', 'r')  # OpenCV'de BGR sıralaması
-    plt.figure()
-    plt.title("Renkli Görüntü Histogramı")
+    plt.figure(figsize=(6, 4))
     plt.xlabel("Piksel Değeri")
     plt.ylabel("Frekans")
     for i, color in enumerate(colors):
         hist = cv2.calcHist([image], [i], None, [256], [0, 256])
         plt.plot(hist, color=color)
     plt.xlim([0, 256])
-    
-    
     # Histogram grafiğini bir görüntü olarak kaydet
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     plt.close()
-    
     return buf
 
+def histogram_equalization(image):
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    l_equalized = cv2.equalizeHist(l)
+    lab_equalized = cv2.merge((l_equalized, a, b))
+    color_equalized = cv2.cvtColor(lab_equalized, cv2.COLOR_LAB2BGR)
+    colors = ('b', 'g', 'r')
 
+    plt.figure(figsize=(9,4))
+    plt.subplot(1, 2, 1)
+    plt.title("Orijinal Histogram")
+    plt.xlabel("Piksel Değeri")
+    plt.ylabel("Frekans")
+    for i, col in enumerate(colors):
+        hist = cv2.calcHist([image], [i], None, [256], [0, 256])
+        plt.plot(hist, color=col)  # Renk kanalına göre çiz
+    plt.xlim([0, 256])
+
+    plt.subplot(1, 2, 2)
+    plt.title("Eşitlenmiş Histogram")
+    plt.xlabel("Piksel Değeri")
+    plt.ylabel("Frekans")
+    for i, col in enumerate(colors):
+        hist_eq = cv2.calcHist([color_equalized], [i], None, [256], [0, 256])
+        plt.plot(hist_eq, color=col)
+    plt.xlim([0, 256])
+
+     # Histogram grafiğini bir görüntü olarak kaydet
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+    return buf
+   
 # Kontrast artırma fonksiyonu
 def adjust_contrast(image, contrast):
     return cv2.convertScaleAbs(image, alpha=contrast, beta=0)
@@ -124,6 +155,8 @@ def process_image(image, operation, value=None):
         return thresholding(image, value)
     elif operation == "histogram":
         return histogram(image)
+    elif operation == "histogram_equalization":
+        return histogram_equalization(image)
     elif operation == "contrast" and value is not None:
         return adjust_contrast(image, value)
     else:
@@ -144,8 +177,12 @@ def process():
 
     image = open_image(img_path)
     
+   
     if operation == "histogram":
         histogram_buf = histogram(image)
+        return send_file(histogram_buf, mimetype="image/png")
+    elif operation == "histogram_equalization":
+        histogram_buf = histogram_equalization(image)
         return send_file(histogram_buf, mimetype="image/png")
     
     processed_img = process_image(image, operation, value)
