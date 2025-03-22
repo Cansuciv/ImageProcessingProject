@@ -1,35 +1,23 @@
 import React, { useState } from "react";
-import { styled } from '@mui/material/styles';
 import { Box } from "@mui/material";
-import Button from '@mui/material/Button';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import Typography from "@mui/material/Typography";
 import axios from "axios";
-import Slider from "@mui/material/Slider";
-import Collapse from "@mui/material/Collapse";
-import ButtonGroup from '@mui/material/ButtonGroup';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Grow from '@mui/material/Grow';
-import Paper from '@mui/material/Paper';
-import Popper from '@mui/material/Popper';
-import MenuItem from '@mui/material/MenuItem';
-import MenuList from '@mui/material/MenuList';
 
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
 
-const options = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linea Contrast'];
+import UploadFile from './Processes/UploadFile.jsx';
+import BackToOriginal from './Processes/BackToOriginal.jsx';
+import ConvertToGray from './Processes/ConvertToGray.jsx';
+import RedFilter from './Processes/RedFilter.jsx';
+import GreenFilter from './Processes/GreenFilter.jsx';
+import BlueFilter from './Processes/BlueFilter.jsx';
+import NegativeFilter from './Processes/NegativeFilter.jsx';
+import BrightnessAdjustment from './Processes/BrightnessAdjustment.jsx';
+import Thresholding from './Processes/Thresholding.jsx';
+import Histogram from './Processes/Histogram.jsx';
+import HistogramEqualization from './Processes/HistogramEqualization.jsx';
+import ContrastOptions from './Processes/ContrastOptions.jsx';
 
+const options = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
 
 export default function GorntuIsleme() {
   const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
@@ -153,6 +141,26 @@ export default function GorntuIsleme() {
     setOpen(false);
   };
 
+  const handleOperationSelect = (operation) => {
+    let operationKey;
+    switch (operation) {
+      case "Linear Contrast Stretching":
+        operationKey = "linear_contrast_stretching";
+        break;
+      case "Manual Contrast Stretching":
+        operationKey = "manual_contrast_stretching";
+        break;
+      case "Multi Linear Contrast":
+        operationKey = "multi_linear_contrast";
+        break;
+      default:
+        operationKey = "";
+    }
+    if (operationKey) {
+      processImage(operationKey);
+    }
+  };
+
   return (
     <Box>
       {/* Arkalan rengi ayarlama. Box içinde sx={{backgroundColor}} yapınca kenarlarda beyaz kısımlar kalıyor*/}
@@ -164,12 +172,7 @@ export default function GorntuIsleme() {
 
       <Box sx={{ textAlign: "center", padding: 2 }}>
         <Typography variant="h4" gutterBottom>Görsel İşleme Uygulaması</Typography>
-        <Button component="label" role={undefined} variant="contained" tabIndex={-1} startIcon={<CloudUploadIcon />}
-          sx={{ marginBottom: 2, marginTop: 5, display: 'flex', mx: 'auto', width: 200, height: 50 }}
-        >
-          Upload files
-          <VisuallyHiddenInput type="file" onChange={onImageChange} />
-        </Button>
+        <UploadFile onImageChange={onImageChange} />
 
         {originalImage && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: 3 }}>
@@ -202,157 +205,45 @@ export default function GorntuIsleme() {
                 )}
               </Box>
             )}
-
-
           </Box>
         )}
 
-        <Button variant="contained" disableElevation
-          sx={{ backgroundColor: "purple", mx: "auto", marginTop: 5, textTransform: "none", fontSize: 20 }}
-          onClick={backToOriginalImage}>
-          Orijinal Resme Geri Dön
-        </Button>
+        <BackToOriginal backToOriginalImage={backToOriginalImage} />
 
         <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2} marginTop="50px" textTransform={"none"}>
-          <Button variant="contained" disableElevation
-            sx={{ backgroundColor: "purple", width: "132px", height: "50px", textTransform: "none", fontSize: 18 }}
-            onClick={() => processImage("convert_gray")}>
-            Gri'ye Çevir
-          </Button>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("red")}
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Kırmızı
-          </Button>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("green")}
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Yeşil
-          </Button>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("blue")}
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Mavi
-          </Button>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("negative")}
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Negatifi
-          </Button>
-
-          <Box>
-            <Button variant="contained" disableElevation
-              onClick={() => setBrightnessOn(!brightnessOn)}
-              sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-              Parlaklık
-            </Button>
-            <Collapse in={brightnessOn}>
-              <Slider
-                value={brightnessValue}
-                onChange={handleBrightnessChange}
-                aria-label="Brightness"
-                valueLabelDisplay="auto"
-                min={0}
-                max={255}
-              />
-            </Collapse>
-          </Box>
-
-          <Box>
-            <Button variant="contained" disableElevation
-              onClick={() => setThresholdingOn(!thresholdingOn)}
-              sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-              Eşikleme
-            </Button>
-            <Collapse in={thresholdingOn}>
-              <Slider
-                value={thresholdingValue}
-                onChange={handleThresholdingChange}
-                aria-label="Thresholding"
-                valueLabelDisplay="auto"
-                min={0}
-                max={255}
-              />
-            </Collapse>
-          </Box>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("histogram")} // Histogram işlemini tetikle
-            sx={{ backgroundColor: "purple", width: "120px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Histogram
-          </Button>
-
-          <Button variant="contained" disableElevation
-            onClick={() => processImage("histogram_equalization")} // Histogram işlemini tetikle
-            sx={{ backgroundColor: "purple", width: "200px", height: "50px", textTransform: "none", fontSize: 18 }}>
-            Histogram Eşitleme
-          </Button>
-
-
-          <React.Fragment>
-            <ButtonGroup
-              variant="contained"
-              ref={anchorRef}
-              aria-label="Button group with a nested menu"
-            >
-              <Button sx={{ backgroundColor: "purple", textTransform: "none", fontSize: 18 }} onClick={handleClick}>{options[selectedIndex]}</Button>
-              <Button
-                sx={{ backgroundColor: "purple" }}
-                size="small"
-                aria-controls={open ? 'split-button-menu' : undefined}
-                aria-expanded={open ? 'true' : undefined}
-                aria-label="select merge strategy"
-                aria-haspopup="menu"
-                onClick={handleToggle}
-              >
-                <ArrowDropDownIcon sx={{ backgroundColor: "purple" }} />
-              </Button>
-            </ButtonGroup>
-            <Popper
-
-              sx={{ zIndex: 1 }}
-              open={open}
-              anchorEl={anchorRef.current}
-              role={undefined}
-              transition
-              disablePortal
-            >
-              {({ TransitionProps, placement }) => (
-                <Grow
-                  {...TransitionProps}
-                  style={{
-                    transformOrigin:
-                      placement === 'bottom' ? 'center top' : 'center bottom',
-                  }}
-                >
-                  <Paper sx={{ backgroundColor: "purple", color: "white" }}>
-                    <ClickAwayListener onClickAway={handleClose}>
-                      <MenuList id="split-button-menu" autoFocusItem >
-                        {options.map((option, index) => (
-                          <MenuItem
-                            key={option}
-                            selected={index === selectedIndex}
-                            onClick={(event) => handleMenuItemClick(event, index)}
-                          >
-                            {option}
-                          </MenuItem>
-                        ))}
-                      </MenuList>
-                    </ClickAwayListener>
-                  </Paper>
-                </Grow>
-              )}
-            </Popper>
-          </React.Fragment>
-
-
+          <ConvertToGray processImage={processImage} />
+          <RedFilter processImage={processImage} />
+          <GreenFilter processImage={processImage} />
+          <BlueFilter processImage={processImage} />
+          <NegativeFilter processImage={processImage} />
+          <BrightnessAdjustment
+            brightnessOn={brightnessOn}
+            setBrightnessOn={setBrightnessOn}
+            brightnessValue={brightnessValue}
+            handleBrightnessChange={handleBrightnessChange}
+          />
+          <Thresholding
+            thresholdingOn={thresholdingOn}
+            setThresholdingOn={setThresholdingOn}
+            thresholdingValue={thresholdingValue}
+            handleThresholdingChange={handleThresholdingChange}
+          />
+          <Histogram processImage={processImage} />
+          <HistogramEqualization processImage={processImage} />
+          <ContrastOptions
+            options={options}
+            selectedIndex={selectedIndex}
+            setSelectedIndex={setSelectedIndex}
+            open={open}
+            setOpen={setOpen}
+            anchorRef={anchorRef}
+            handleMenuItemClick={handleMenuItemClick}
+            handleToggle={handleToggle}
+            handleClose={handleClose}
+            onOperationSelect={handleOperationSelect}
+          />
 
         </Box>
-
       </Box>
     </Box>
   );

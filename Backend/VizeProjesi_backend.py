@@ -131,10 +131,39 @@ def histogram_equalization(image):
     plt.close()
     return buf
    
-# Kontrast artırma fonksiyonu
-def adjust_contrast(image, contrast):
-    return cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+# # Kontrast artırma fonksiyonu
+# def adjust_contrast(image, contrast):
+#     return cv2.convertScaleAbs(image, alpha=contrast, beta=0)
 
+def linear_contrast_stretching(image):
+    I_min = np.min(image)
+    I_max = np.max(image)
+    linear_contrast_stretching_image = ((image - I_min) / (I_max - I_min) * 255).astype(np.uint8)
+    return linear_contrast_stretching_image
+
+def manual_contrast_stretching(image, in_min=20, in_max=150, out_min=0, out_max=255):
+    manual_contrast_stretching_image = np.clip((image - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, out_min, out_max)
+    return manual_contrast_stretching_image.astype(np.uint8)
+
+def multi_linear_contrast(image):
+    min_val = np.min(image)
+    max_val = np.max(image)
+    ranges = [
+        (min_val, 50, 0, 100),       # Karanlık bölgeleri daha parlak yap
+        (50, 150, 50, 200),          # Orta tonları genişlet
+        (150, max_val, 150, 255)     # Açık tonları koru
+    ]
+    
+    multi_linear_contrast_image = np.zeros_like(image, dtype=np.uint8)  
+    for in_min, in_max, out_min, out_max in ranges:
+        mask = (image >= in_min) & (image <= in_max)
+        multi_linear_contrast_image[mask] = np.clip(
+            (image[mask] - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, 
+            out_min, 
+            out_max
+        )
+    
+    return multi_linear_contrast_image
 
 
 # Resmi işleme fonksiyonları
@@ -157,8 +186,12 @@ def process_image(image, operation, value=None):
         return histogram(image)
     elif operation == "histogram_equalization":
         return histogram_equalization(image)
-    elif operation == "contrast" and value is not None:
-        return adjust_contrast(image, value)
+    elif operation == "linear_contrast_stretching": 
+        return linear_contrast_stretching(image)
+    elif operation == "manual_contrast_stretching": 
+        return manual_contrast_stretching(image)
+    elif operation == "multi_linear_contrast": 
+        return multi_linear_contrast(image)
     else:
         return image
 
