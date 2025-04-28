@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box } from "@mui/material";
 import Typography from "@mui/material/Typography";
 import axios from "axios";
-
+import Button from '@mui/material/Button';
 
 import UploadFile from './Processes/UploadFile.jsx';
 import BackToOriginal from './Processes/BackToOriginal.jsx';
@@ -16,8 +16,12 @@ import Thresholding from './Processes/Thresholding.jsx';
 import Histogram from './Processes/Histogram.jsx';
 import HistogramEqualization from './Processes/HistogramEqualization.jsx';
 import ContrastOptions from './Processes/ContrastOptions.jsx';
+import FrameOptions from './Processes/FrameOptions.jsx';
+import CropImage from "./Processes/CropImage.jsx";
 
-const options = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
+
+const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
+const optionsFrame = ['Rectangle', 'Circle', 'Ellipse', "Polygon"];
 
 export default function GorntuIsleme() {
   const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
@@ -28,50 +32,79 @@ export default function GorntuIsleme() {
   const [thresholdingValue, setThresholdingValue] = useState(127); // Kontrast değerini tutacak state
   const [histogramImage, setHistogramImage] = useState(null); // Histogram grafiği için 
   const [histogramEqualizationImage, setHistogramEqualizationImage] = useState(null); // Histogram eşitleme grafiği için 
+  const [selectedFrame, setSelectedFrame] = useState(optionsFrame[0]);
+  const [tempManualContrastImage, setTempManualContrastImage] = useState(null); // Yeni state
 
+  const [baseImage, setBaseImage] = useState(null); // Yeni state: Temel görüntü (orijinal, gri, mavi vb.)
+  const [baseOperation, setBaseOperation] = useState(null); // Yeni state: Temel işlem türü
+  const [operations, setOperations] = useState([]); // Uygulanan işlemlerin listesi
+  
   const processImage = async (operation, value = null) => {
     const formData = new FormData();
     const fileInput = document.querySelector('input[type="file"]');
-
-    // İşlenmiş resmi kullanarak yeni işlem yapmak
-    const response = await fetch(processedImage);
+  
+    // Get the appropriate image source
+    const imageToUse = 
+      (operation === "brightness" || operation === "thresholding") 
+        ? (baseImage || originalImage) 
+        : (processedImage || originalImage);
+    
+    const response = await fetch(imageToUse);
     const blob = await response.blob();
-
     formData.append("image", blob, fileInput.files[0].name);
     formData.append("operation", operation);
+    
     if (value !== null) {
       formData.append("value", value);
     }
-
-    // Sunucuya istek göndermek
-    const responseFromServer = await axios.post("http://127.0.0.1:5000/process", formData, { responseType: "blob" });
-
-    // Sunucudan gelen işlenmiş resimleri göstermek
-    const imageUrl = URL.createObjectURL(responseFromServer.data);
-
-    if (operation === "histogram") {
-      setHistogramImage(imageUrl);
-      if (histogramEqualizationImage)
-        setHistogramEqualizationImage(histogramEqualizationImage);
-    }
-    else if (operation === "histogram_equalization") {
-      setHistogramEqualizationImage(imageUrl);
-      if (histogramImage)
+  
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/process", formData, {
+        responseType: operation === "histogram_equalization" ? "json" : "blob"
+      });
+  
+      if (operation === "histogram_equalization") {
+        // Handle the JSON response containing both images
+        const equalizedImage = `data:image/jpeg;base64,${response.data.equalized_image}`;
+        const histogramImage = `data:image/png;base64,${response.data.histogram_image}`;
+        
+        setProcessedImage(equalizedImage);
         setHistogramImage(histogramImage);
-    } else {
-      setProcessedImage(imageUrl);
+        setHistogramEqualizationImage(histogramImage);
+        
+        return;
+      }
+  
+      if (operation === "histogram") {
+        const imageUrl = URL.createObjectURL(response.data);
+        setHistogramImage(imageUrl);
+      } else {
+        const imageUrl = URL.createObjectURL(response.data);
+        setProcessedImage(imageUrl);
+        
+        // Update base image for color operations
+        if (["convert_gray", "red", "green", "blue", "negative"].includes(operation)) {
+          setBaseImage(imageUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error processing image:", error);
     }
   };
-
 
   const backToOriginalImage = () => {
-    setProcessedImage(originalImage)
-    setBrightnessValue(127)
-    setThresholdingValue(127)
-    setHistogramImage(null);
-    setHistogramEqualizationImage(null);
+      setProcessedImage(originalImage);
+      setBaseImage(null);
+      setOperations([]);
+      setBaseOperation(null);
+      setBrightnessValue(127);
+      setThresholdingValue(127);
+      setHistogramImage(null);
+      setHistogramEqualizationImage(null);
+      setTempManualContrastImage(null);
   };
 
+  
   const resizeImage = (file, width, height, callback) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -121,7 +154,7 @@ export default function GorntuIsleme() {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
 
   const handleClick = () => {
-    console.info(`You clicked ${options[selectedIndex]}`);
+    console.info(`You clicked ${optionsContrast[selectedIndex]}`);
   };
 
   const handleMenuItemClick = (event, index) => {
@@ -141,17 +174,53 @@ export default function GorntuIsleme() {
     setOpen(false);
   };
 
-  const handleOperationSelect = (operation) => {
+  const handleContrastOperationSelect = (operation) => {
+    if (typeof operation === 'object') {
+      if (operation.operation === "manual_contrast_stretching") {
+        if (operation.isTemporary) {
+          setTempManualContrastImage(operation.result);
+        } else if (operation.result) {
+          setProcessedImage(operation.result);
+        }
+      } else if (operation.operation === "multi_linear_contrast" && operation.result) {
+        setProcessedImage(operation.result);
+      }
+      return;
+    }
+  
     let operationKey;
     switch (operation) {
       case "Linear Contrast Stretching":
         operationKey = "linear_contrast_stretching";
         break;
       case "Manual Contrast Stretching":
-        operationKey = "manual_contrast_stretching";
-        break;
       case "Multi Linear Contrast":
-        operationKey = "multi_linear_contrast";
+        // These cases are handled by the object check above
+        return;
+      default:
+        operationKey = "";
+    }
+    
+    if (operationKey) {
+      processImage(operationKey);
+    }
+  };
+
+  const handleFrameOperationSelect = (operation) => {
+    setSelectedFrame(operation); // Seçilen çerçeve türünü state'e kaydet
+    let operationKey;
+    switch (operation) {
+      case "Rectangle":
+        operationKey = "rectangle";
+        break;
+      case "Circle":
+        operationKey = "circle";
+        break;
+      case "Ellipse":
+        operationKey = "ellipse";   
+        break;
+      case "Polygon":
+        operationKey = "polygon";
         break;
       default:
         operationKey = "";
@@ -160,6 +229,10 @@ export default function GorntuIsleme() {
       processImage(operationKey);
     }
   };
+
+const handleCrop = () => {
+    processImage("crop", selectedFrame);
+};
 
   return (
     <Box>
@@ -184,7 +257,7 @@ export default function GorntuIsleme() {
               </Box>
               <Box>
                 <Typography variant="h6">İşlenen Resim</Typography>
-                <img src={processedImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
+                <img src={tempManualContrastImage || processedImage || originalImage}  alt="İşlenmiş" style={{ marginTop: 10 }} />
               </Box>
             </Box>
 
@@ -195,12 +268,6 @@ export default function GorntuIsleme() {
                   <Box>
                     <Typography variant="h6">Histogram Grafiği</Typography>
                     <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
-                  </Box>
-                )}
-                {histogramEqualizationImage && (
-                  <Box>
-                    <Typography variant="h6">Histogram Eşitleme Grafiği</Typography>
-                    <img src={histogramEqualizationImage} alt="Histogram Equalization" style={{ marginTop: 10 }} />
                   </Box>
                 )}
               </Box>
@@ -220,8 +287,11 @@ export default function GorntuIsleme() {
             brightnessOn={brightnessOn}
             setBrightnessOn={setBrightnessOn}
             brightnessValue={brightnessValue}
-            handleBrightnessChange={handleBrightnessChange}
-          />
+            handleBrightnessChange={(event, newValue) => {
+                setBrightnessValue(newValue);
+                processImage("brightness", newValue);
+            }}
+           />
           <Thresholding
             thresholdingOn={thresholdingOn}
             setThresholdingOn={setThresholdingOn}
@@ -230,19 +300,14 @@ export default function GorntuIsleme() {
           />
           <Histogram processImage={processImage} />
           <HistogramEqualization processImage={processImage} />
-          <ContrastOptions
-            options={options}
-            selectedIndex={selectedIndex}
-            setSelectedIndex={setSelectedIndex}
-            open={open}
-            setOpen={setOpen}
-            anchorRef={anchorRef}
-            handleMenuItemClick={handleMenuItemClick}
-            handleToggle={handleToggle}
-            handleClose={handleClose}
-            onOperationSelect={handleOperationSelect}
+          <ContrastOptions 
+            options={optionsContrast} 
+            onOperationSelect={handleContrastOperationSelect}
+            processedImage={processedImage}
+            originalImage={originalImage}
           />
-
+          <FrameOptions options={optionsFrame} onOperationSelect={handleFrameOperationSelect} />
+          <CropImage processImage={processImage} selectedFrame={selectedFrame} />
         </Box>
       </Box>
     </Box>

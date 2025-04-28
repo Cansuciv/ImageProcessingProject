@@ -5,9 +5,19 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import io
+import json
+import zipfile
+import base64
+
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/process": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 
 UPLOAD_FOLDER = "uploads"
@@ -98,42 +108,53 @@ def histogram(image):
     return buf
 
 def histogram_equalization(image):
+    # Convert to LAB color space and equalize the L channel
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     l_equalized = cv2.equalizeHist(l)
     lab_equalized = cv2.merge((l_equalized, a, b))
     color_equalized = cv2.cvtColor(lab_equalized, cv2.COLOR_LAB2BGR)
-    colors = ('b', 'g', 'r')
-
-    plt.figure(figsize=(9,4))
+    
+    # Save the equalized image temporarily
+    equalized_img_path = os.path.join(PROCESSED_FOLDER, "temp_equalized.jpg")
+    cv2.imwrite(equalized_img_path, color_equalized)
+    
+    # Create histogram comparison
+    hist_colors = ('b', 'g', 'r')
+    
+    # Create figure with two subplots
+    plt.figure(figsize=(10, 5))
+    
+    # Original histogram
     plt.subplot(1, 2, 1)
-    plt.title("Orijinal Histogram")
-    plt.xlabel("Piksel Değeri")
-    plt.ylabel("Frekans")
-    for i, col in enumerate(colors):
+    for i, color in enumerate(hist_colors):
         hist = cv2.calcHist([image], [i], None, [256], [0, 256])
-        plt.plot(hist, color=col)  # Renk kanalına göre çiz
+        plt.plot(hist, color=color)
+    plt.title("Orijinal Histogram")
     plt.xlim([0, 256])
-
+    
+    # Equalized histogram
     plt.subplot(1, 2, 2)
-    plt.title("Eşitlenmiş Histogram")
-    plt.xlabel("Piksel Değeri")
-    plt.ylabel("Frekans")
-    for i, col in enumerate(colors):
+    for i, color in enumerate(hist_colors):
         hist_eq = cv2.calcHist([color_equalized], [i], None, [256], [0, 256])
-        plt.plot(hist_eq, color=col)
+        plt.plot(hist_eq, color=color)
+    plt.title("Eşitlenmiş Histogram")
     plt.xlim([0, 256])
-
-     # Histogram grafiğini bir görüntü olarak kaydet
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
+    
+    plt.tight_layout()
+    
+    # Save histogram to buffer
+    histogram_buf = io.BytesIO()
+    plt.savefig(histogram_buf, format='png')
+    histogram_buf.seek(0)
     plt.close()
-    return buf
-   
-# # Kontrast artırma fonksiyonu
-# def adjust_contrast(image, contrast):
-#     return cv2.convertScaleAbs(image, alpha=contrast, beta=0)
+    
+    # Return both the equalized image path and histogram buffer
+    return {
+        'equalized_image': equalized_img_path,
+        'histogram': histogram_buf
+    }
+
 
 def linear_contrast_stretching(image):
     I_min = np.min(image)
@@ -141,30 +162,100 @@ def linear_contrast_stretching(image):
     linear_contrast_stretching_image = ((image - I_min) / (I_max - I_min) * 255).astype(np.uint8)
     return linear_contrast_stretching_image
 
-def manual_contrast_stretching(image, in_min=20, in_max=150, out_min=0, out_max=255):
-    manual_contrast_stretching_image = np.clip((image - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, out_min, out_max)
-    return manual_contrast_stretching_image.astype(np.uint8)
+def manual_contrast_stretching(image, in_min, in_max, out_min=0, out_max=255):
+    stretched_image = np.clip((image - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, out_min, out_max)
+    stretched_image = stretched_image.astype(np.uint8)
+    return stretched_image
 
-def multi_linear_contrast(image):
-    min_val = np.min(image)
-    max_val = np.max(image)
-    ranges = [
-        (min_val, 50, 0, 100),       # Karanlık bölgeleri daha parlak yap
-        (50, 150, 50, 200),          # Orta tonları genişlet
-        (150, max_val, 150, 255)     # Açık tonları koru
-    ]
+def multi_linear_contrast(image, ranges):
+    stretched_image = np.zeros_like(image, dtype=np.uint8)
     
-    multi_linear_contrast_image = np.zeros_like(image, dtype=np.uint8)  
     for in_min, in_max, out_min, out_max in ranges:
         mask = (image >= in_min) & (image <= in_max)
-        multi_linear_contrast_image[mask] = np.clip(
-            (image[mask] - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, 
-            out_min, 
-            out_max
-        )
+        stretched_image[mask] = np.clip((image[mask] - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, out_min, out_max)
     
-    return multi_linear_contrast_image
+    return stretched_image
+    
 
+
+
+def rectangle(image):
+    frame_width = 10
+    color = (0,0,255) 
+    image[:, 0:frame_width] = color # Sol kenar    
+    image[:, -frame_width:] = color # Sağ kenar   
+    image[0:frame_width, :] = color # Üst kenar 
+    image[-frame_width:, :] = color # Alt kenar 
+    return image
+
+def circle(image):
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2) 
+    radius = min(width, height) // 2 - 10 
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.circle(mask, center, radius, 255, -1) 
+    result = cv2.bitwise_and(image, image, mask=mask)
+    background = np.full_like(image, (0,0,255) )
+    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
+    return result
+
+def ellipse(image):
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2)
+    axes = (width // 2 - 10, height // 2 - 80)
+    angle = 0 
+    start_angle = 0  
+    end_angle = 360  
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.ellipse(mask, center, axes, angle, start_angle, end_angle, 255, -1)
+    result = cv2.bitwise_and(image, image, mask=mask)
+    background = np.full_like(image, (0,0,255) ) 
+    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
+    return result
+
+def polygon(image):
+    height, width = image.shape[:2]
+    points = np.array([
+        [width // 2, height // 4],  # Üst orta
+        [width // 4 * 3, height // 4 * 3],  # Sağ alt
+        [width // 2, height - height // 4],  # Alt orta
+        [width // 4, height // 4 * 3],  # Sol alt
+        [width // 4, height // 4],  # Sol üst
+        [width // 3, height // 6],
+        [width // 7, height // 13],
+        [width // 5, height // 5],
+        [width // 6, height // 7],
+        [width // 4, height // 7],
+        [width // 3, height // 5],
+    ], dtype=np.int32)
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask, [points], 255)
+    result = cv2.bitwise_and(image, image, mask=mask)
+    background = np.full_like(image, (0,0,255) ) 
+    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
+    return result
+
+def crop_image(image, shape):
+    height, width = image.shape[:2]
+    
+    # Çerçeve rengi (BGR formatında)
+    frame_color = np.array([0, 0, 255])
+
+    # Renk eşik değerleri (renk toleransı)
+    lower_bound = frame_color - 10  # Alt sınır
+    upper_bound = frame_color + 10  # Üst sınır
+    # Renk maskesi oluştur
+    mask = cv2.inRange(image, lower_bound, upper_bound)
+    # Maskeyi kullanarak çerçeve piksellerini bul
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return image  # Eğer çerçeve bulunamazsa orijinal görüntüyü döndür
+    # En büyük konturu bul (çerçeve)
+    largest_contour = max(contours, key=cv2.contourArea)
+    x, y, w, h = cv2.boundingRect(largest_contour)
+    # Kırpma işlemi
+    cropped_image = image[y:y+h, x:x+w]
+    return cropped_image
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -189,9 +280,21 @@ def process_image(image, operation, value=None):
     elif operation == "linear_contrast_stretching": 
         return linear_contrast_stretching(image)
     elif operation == "manual_contrast_stretching": 
-        return manual_contrast_stretching(image)
+        in_min = int(request.form.get("in_min", 50))
+        in_max = int(request.form.get("in_max", 200))
+        return manual_contrast_stretching(image, in_min, in_max)
     elif operation == "multi_linear_contrast": 
         return multi_linear_contrast(image)
+    elif operation == "rectangle":
+        return rectangle(image)
+    elif operation == "circle":
+        return circle(image)
+    elif operation == "ellipse":
+        return ellipse(image)
+    elif operation == "polygon":
+        return polygon(image)
+    elif operation == "crop":
+        return crop_image(image, value)
     else:
         return image
 
@@ -200,27 +303,112 @@ def process_image(image, operation, value=None):
 def process():
     file = request.files.get("image")
     operation = request.form.get("operation")
-    value = request.form.get("value")  # Parlaklık değeri (0-255)
-
+    
+    # Handle manual contrast stretching
+    if operation == "manual_contrast_stretching":
+        try:
+            # Get parameters from form data
+            in_min = int(request.form.get("in_min", 50))
+            in_max = int(request.form.get("in_max", 200))
+            out_min = int(request.form.get("out_min", 0))
+            out_max = int(request.form.get("out_max", 255))
+            
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Process image
+            processed_img = manual_contrast_stretching(image, in_min, in_max, out_min, out_max)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()), 
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    # Handle multi-linear contrast
+    if operation == "multi_linear_contrast":
+        try:
+            ranges_json = request.form.get("ranges")
+            ranges = json.loads(ranges_json)
+            
+            # Aralıkları kontrol et
+            if not all(len(r) == 4 for r in ranges):
+                return jsonify({"error": "Her aralık 4 değer içermeli"}), 400
+                
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            processed_img = multi_linear_contrast(image, ranges)
+            
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()), 
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    # Rest of your existing process function...
+    value = request.form.get("value")
     if value is not None:
-        value = int(value)  # String değeri sayıya çevir
+        value = int(value)
         
     img_path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(img_path)
-
     image = open_image(img_path)
     
-   
     if operation == "histogram":
         histogram_buf = histogram(image)
         return send_file(histogram_buf, mimetype="image/png")
-    elif operation == "histogram_equalization":
-        histogram_buf = histogram_equalization(image)
-        return send_file(histogram_buf, mimetype="image/png")
     
+    elif operation == "histogram_equalization":
+        result = histogram_equalization(image)
+        
+        # Read the equalized image
+        with open(result['equalized_image'], 'rb') as f:
+            equalized_img_bytes = f.read()
+        
+        # Get histogram image bytes
+        histogram_bytes = result['histogram'].getvalue()
+        
+        # Prepare response
+        response = {
+            'equalized_image': base64.b64encode(equalized_img_bytes).decode('utf-8'),
+            'histogram_image': base64.b64encode(histogram_bytes).decode('utf-8')
+        }
+        
+        return jsonify(response)
+    
+    # Process other operations
     processed_img = process_image(image, operation, value)
-    processed_path = save_image(processed_img, "processed.jpg")
-    return send_file(processed_path, mimetype="image/jpeg")
+    _, img_buffer = cv2.imencode('.jpg', processed_img)
+    return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+
+@app.route("/get_equalized_image")
+def get_equalized_image():
+    return send_file(os.path.join(PROCESSED_FOLDER, "temp_equalized.jpg"), mimetype="image/jpeg")
+
+@app.route("/get_histogram_image")
+def get_histogram_image():
+    with open(os.path.join(PROCESSED_FOLDER, "temp_histogram.png"), "rb") as f:
+        return send_file(io.BytesIO(f.read()), mimetype="image/png")
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
