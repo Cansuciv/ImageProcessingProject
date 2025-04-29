@@ -17,6 +17,8 @@ import Histogram from './Processes/Histogram.jsx';
 import HistogramEqualization from './Processes/HistogramEqualization.jsx';
 import ContrastOptions from './Processes/ContrastOptions.jsx';
 import Translate from './Processes/Translate.jsx';
+import Mirroring from './Processes/Mirroring.jsx';
+
 import FrameOptions from './Processes/FrameOptions.jsx';
 import CropImage from "./Processes/CropImage.jsx";
 
@@ -73,6 +75,13 @@ export default function GorntuIsleme() {
             formData.append("dx", value.dx.toString());
             formData.append("dy", value.dy.toString());
         }
+        // Mirror işlemleri için parametre ekle
+        if (operation === "mirror_image_by_center" && value?.x0) {
+            formData.append("x0", value.x0.toString());
+        }
+        if (operation === "mirror_image_angle" && value?.angle) {
+            formData.append("angle", value.angle.toString());
+        }
 
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
             responseType: operation === "histogram_equalization" ? "json" : "blob",
@@ -96,8 +105,11 @@ export default function GorntuIsleme() {
             const imageUrl = URL.createObjectURL(axiosResponse.data);
             setProcessedImage(imageUrl);
 
-            // Update baseImage for color operations
+            // Update baseImage for color and mirror operations
             if (["convert_gray", "red", "green", "blue", "negative"].includes(operation)) {
+                setBaseImage(imageUrl);
+            }
+            if (operation.includes("mirror")) {
                 setBaseImage(imageUrl);
             }
         }
@@ -358,6 +370,15 @@ export default function GorntuIsleme() {
           originalImage={originalImage}
           processedImage={processedImage}
         />
+
+        <Mirroring 
+          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+          originalImage={originalImage}
+          processedImage={processedImage}
+        />
+
+
+        {/*
         <FrameOptions 
           options={optionsFrame} 
           onOperationSelect={(operation) => {
@@ -365,7 +386,7 @@ export default function GorntuIsleme() {
             setShowMultiLinearInputs(false);
             handleFrameOperationSelect(operation);
           }} 
-        />
+        /> */}
         <CropImage 
           processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)} 
           selectedFrame={selectedFrame} 

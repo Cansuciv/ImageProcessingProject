@@ -194,6 +194,58 @@ def functional_translate(image, dx, dy):
     return translated
 
 
+def mirror_image_by_center(image, x0):
+    h, w = image.shape[:2]
+    mirrored_image = image.copy()
+    for y1 in range(h):
+        for x1 in range(w):
+            x2 = -x1 + 2 * x0
+            if 0 <= x2 < w:
+                mirrored_image[y1, x2] = image[y1, x1]
+    return mirrored_image
+
+def handle_click_to_mirror(image):
+    x0 = image.shape[1] // 2 
+    
+    def click_event(event, x, y, flags, param):
+        nonlocal x0
+        if event == cv2.EVENT_LBUTTONDOWN:
+            x0 = x
+            mirrored = mirror_image_by_center(image, x0) 
+            cv2.imshow("Aynalanmış", mirrored)
+
+    cv2.imshow("Orijinal", image)
+    x= cv2.setMouseCallback("Orijinal", click_event)  
+    return x
+
+def mirror_image_horizontal(image):
+    h, w = image.shape[:2]
+    y0 = h // 2
+    mirrored_image = image.copy()
+
+    for y1 in range(h):
+        y2 = -y1 + 2 * y0  # Aynalama formülü
+        if 0 <= y2 < h:
+            mirrored_image[y2, :] = image[y1, :]
+    return mirrored_image
+
+def mirror_image_angle(image,theta):
+    h, w = image.shape[:2]
+    x0, y0 = w // 2, h // 2 
+    theta = np.radians(theta)
+    mirrored_image = np.zeros_like(image)
+
+    for y1 in range(h):
+        for x1 in range(w):
+            delta = (x1 - x0) * np.sin(theta) - (y1 - y0) * np.cos(theta)
+
+            x2 = int(x1 + 2 * delta * (-np.sin(theta)))
+            y2 = int(y1 + 2 * delta * (np.cos(theta)))
+
+            if 0 <= x2 < w and 0 <= y2 < h:
+                mirrored_image[y2, x2] = image[y1, x1]
+    return mirrored_image
+
 
 def rectangle(image):
     frame_width = 10
@@ -305,6 +357,16 @@ def process_image(image, operation, value=None):
         return manual_translate(image, dx, dy)
     elif operation == "functional_translate": 
         return functional_translate((image, dx, dy))
+    elif operation == "mirror_image_by_center":
+        return mirror_image_by_center(image, image.shape[1] // 2)
+    elif operation == "handle_click_to_mirror":
+        return handle_click_to_mirror(image, image.shape[1] // 2)  # Default to center if no click
+    elif operation == "mirror_image_horizontal":
+        return mirror_image_horizontal(image)
+    elif operation == "mirror_image_angle" and value is not None:
+        return mirror_image_angle(image, value)
+
+
     elif operation == "rectangle":
         return rectangle(image)
     elif operation == "circle":
@@ -403,6 +465,35 @@ def process():
                 io.BytesIO(img_buffer.tobytes()),
                 mimetype="image/jpeg"
             )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    if operation in ["mirror_image_by_center", "mirror_image_horizontal", "mirror_image_angle"]:
+        try:
+            # Resmi bellekte işle
+            img_bytes = request.files['image'].read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            if operation == "mirror_image_by_center":
+                x0 = int(request.form.get("x0", image.shape[1] // 2))
+                processed_img = mirror_image_by_center(image, x0)
+            elif operation == "mirror_image_horizontal":
+                processed_img = mirror_image_horizontal(image)
+            elif operation == "mirror_image_angle":
+                angle = int(request.form.get("angle", 45))
+                processed_img = mirror_image_angle(image, angle)
+            
+            # İşlenmiş görüntüyü döndür
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     
