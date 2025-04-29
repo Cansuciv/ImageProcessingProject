@@ -11,13 +11,7 @@ import base64
 
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/process": {
-        "origins": ["http://localhost:5173"],
-        "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(app)
 
 
 UPLOAD_FOLDER = "uploads"
@@ -68,17 +62,15 @@ def negative_image(image):
 
 
 # Parlaklık artırma/azaltma fonksiyonu
-def adjust_brightness(image, brightness):
-    x, y, z = image.shape
+def adjust_brightness(img, brightness):
+    x, y, z = img.shape
     for i in range(x):
         for j in range(y):
             for k in range(z):
-                image[i, j, k] = image[i, j, k] + brightness
-                if image[i, j, k] > 255: 
-                    image[i, j, k] = 255
-                elif image[i, j, k] < 0: 
-                    image[i, j, k] = 0
-    return image
+                img[i, j, k] = img[i, j, k] + brightness
+                if img[i, j, k] > 255:
+                    img[i, j, k] = 255
+    return img
 
 def thresholding(image, threshold):
     x,y,z = image.shape
@@ -175,7 +167,31 @@ def multi_linear_contrast(image, ranges):
         stretched_image[mask] = np.clip((image[mask] - in_min) / (in_max - in_min) * (out_max - out_min) + out_min, out_min, out_max)
     
     return stretched_image
+
+def manual_translate(image, dx, dy):
+    h, w = image.shape[:2]
+    moved_image = np.zeros_like(image)
     
+    # Calculate new positions
+    x_start = max(dx, 0)
+    y_start = max(dy, 0)
+    x_end = min(w, w + dx)
+    y_end = min(h, h + dy)
+    
+    # Original positions
+    orig_x_start = max(-dx, 0)
+    orig_y_start = max(-dy, 0)
+    orig_x_end = min(w, w - dx)
+    orig_y_end = min(h, h - dy)
+    
+    moved_image[y_start:y_end, x_start:x_end] = image[orig_y_start:orig_y_end, orig_x_start:orig_x_end]
+    return moved_image
+
+def functional_translate(image, dx, dy):
+    h, w = image.shape[:2]
+    M = np.float32([[1, 0, dx], [0, 1, dy]])
+    translated = cv2.warpAffine(image, M, (w, h))
+    return translated
 
 
 
@@ -285,6 +301,10 @@ def process_image(image, operation, value=None):
         return manual_contrast_stretching(image, in_min, in_max)
     elif operation == "multi_linear_contrast": 
         return multi_linear_contrast(image)
+    elif operation == "manual_translate": 
+        return manual_translate(image, dx, dy)
+    elif operation == "functional_translate": 
+        return functional_translate((image, dx, dy))
     elif operation == "rectangle":
         return rectangle(image)
     elif operation == "circle":
@@ -353,6 +373,34 @@ def process():
             _, img_buffer = cv2.imencode('.jpg', processed_img)
             return send_file(
                 io.BytesIO(img_buffer.tobytes()), 
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    # Handle translate operations
+    if operation in ["manual_translate", "functional_translate"]:
+        try:
+            dx = int(request.form.get("dx", 0))
+            dy = int(request.form.get("dy", 0))
+            
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            if operation == "manual_translate":
+                processed_img = manual_translate(image, dx, dy)
+            else:
+                processed_img = functional_translate(image, dx, dy)
+                
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
                 mimetype="image/jpeg"
             )
         except Exception as e:

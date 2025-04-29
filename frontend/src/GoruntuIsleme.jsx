@@ -16,95 +16,115 @@ import Thresholding from './Processes/Thresholding.jsx';
 import Histogram from './Processes/Histogram.jsx';
 import HistogramEqualization from './Processes/HistogramEqualization.jsx';
 import ContrastOptions from './Processes/ContrastOptions.jsx';
+import Translate from './Processes/Translate.jsx';
 import FrameOptions from './Processes/FrameOptions.jsx';
 import CropImage from "./Processes/CropImage.jsx";
-
 
 const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
 const optionsFrame = ['Rectangle', 'Circle', 'Ellipse', "Polygon"];
 
 export default function GorntuIsleme() {
-  const [originalImage, setOriginalImage] = useState(null); // orijinal resmi tutmak için kullanılır
-  const [processedImage, setProcessedImage] = useState(null); // İşlenmiş resmi tutacak state
-  const [brightnessOn, setBrightnessOn] = useState(false); // Parlaklığı arttırmak/azaltmak için slider'ı açacak
-  const [thresholdingOn, setThresholdingOn] = useState(false); // Kontrast değerini tutacak state
-  const [brightnessValue, setBrightnessValue] = useState(127); // Parlaklık değerini tutacak state
-  const [thresholdingValue, setThresholdingValue] = useState(127); // Kontrast değerini tutacak state
-  const [histogramImage, setHistogramImage] = useState(null); // Histogram grafiği için 
-  const [histogramEqualizationImage, setHistogramEqualizationImage] = useState(null); // Histogram eşitleme grafiği için 
+  const [originalImage, setOriginalImage] = useState(null);
+  const [processedImage, setProcessedImage] = useState(null);
+  const [brightnessOn, setBrightnessOn] = useState(false);
+  const [thresholdingOn, setThresholdingOn] = useState(false);
+  const [brightnessValue, setBrightnessValue] = useState(127);
+  const [thresholdingValue, setThresholdingValue] = useState(127);
+  const [histogramImage, setHistogramImage] = useState(null);
+  const [histogramEqualizationImage, setHistogramEqualizationImage] = useState(null);
   const [selectedFrame, setSelectedFrame] = useState(optionsFrame[0]);
-  const [tempManualContrastImage, setTempManualContrastImage] = useState(null); // Yeni state
+  const [tempManualContrastImage, setTempManualContrastImage] = useState(null);
+  const [baseImage, setBaseImage] = useState(null);
+  const [baseOperation, setBaseOperation] = useState(null);
+  const [operations, setOperations] = useState([]);
+  const [showManualInputs, setShowManualInputs] = useState(false);
+  const [showMultiLinearInputs, setShowMultiLinearInputs] = useState(false);
 
-  const [baseImage, setBaseImage] = useState(null); // Yeni state: Temel görüntü (orijinal, gri, mavi vb.)
-  const [baseOperation, setBaseOperation] = useState(null); // Yeni state: Temel işlem türü
-  const [operations, setOperations] = useState([]); // Uygulanan işlemlerin listesi
-  
   const processImage = async (operation, value = null) => {
     const formData = new FormData();
     const fileInput = document.querySelector('input[type="file"]');
-  
-    // Get the appropriate image source
-    const imageToUse = 
-      (operation === "brightness" || operation === "thresholding") 
-        ? (baseImage || originalImage) 
-        : (processedImage || originalImage);
-    
-    const response = await fetch(imageToUse);
-    const blob = await response.blob();
-    formData.append("image", blob, fileInput.files[0].name);
-    formData.append("operation", operation);
-    
-    if (value !== null) {
-      formData.append("value", value);
-    }
-  
+
     try {
-      const response = await axios.post("http://127.0.0.1:5000/process", formData, {
-        responseType: operation === "histogram_equalization" ? "json" : "blob"
-      });
-  
-      if (operation === "histogram_equalization") {
-        // Handle the JSON response containing both images
-        const equalizedImage = `data:image/jpeg;base64,${response.data.equalized_image}`;
-        const histogramImage = `data:image/png;base64,${response.data.histogram_image}`;
-        
-        setProcessedImage(equalizedImage);
-        setHistogramImage(histogramImage);
-        setHistogramEqualizationImage(histogramImage);
-        
-        return;
-      }
-  
-      if (operation === "histogram") {
-        const imageUrl = URL.createObjectURL(response.data);
-        setHistogramImage(imageUrl);
-      } else {
-        const imageUrl = URL.createObjectURL(response.data);
-        setProcessedImage(imageUrl);
-        
-        // Update base image for color operations
-        if (["convert_gray", "red", "green", "blue", "negative"].includes(operation)) {
-          setBaseImage(imageUrl);
+        // Determine which image to use
+        const imageToUse =
+            ["brightness", "thresholding", "manual_translate", "functional_translate"].includes(operation)
+                ? (baseImage || originalImage)
+                : (processedImage || originalImage);
+
+        if (!imageToUse) {
+            console.error("No image available for processing");
+            return false;
         }
-      }
+
+        // Get image as blob
+        const response = await fetch(imageToUse);
+        const blob = await response.blob();
+        formData.append("image", blob, fileInput?.files[0]?.name || "image.jpg");
+        formData.append("operation", operation);
+
+        // Add specific parameters
+        if (operation === "brightness" && value !== null) {
+            formData.append("value", value.toString());
+        }
+        if (operation === "thresholding" && value !== null) {
+            formData.append("value", value.toString());
+        }
+        if (operation.includes("translate") && value) {
+            formData.append("dx", value.dx.toString());
+            formData.append("dy", value.dy.toString());
+        }
+
+        const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
+            responseType: operation === "histogram_equalization" ? "json" : "blob",
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        // Handle different response types
+        if (operation === "histogram_equalization") {
+            const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
+            const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
+
+            setProcessedImage(equalizedImage);
+            setHistogramImage(histogramImage);
+            setHistogramEqualizationImage(histogramImage);
+        } else if (operation === "histogram") {
+            const imageUrl = URL.createObjectURL(axiosResponse.data);
+            setHistogramImage(imageUrl);
+        } else {
+            const imageUrl = URL.createObjectURL(axiosResponse.data);
+            setProcessedImage(imageUrl);
+
+            // Update baseImage for color operations
+            if (["convert_gray", "red", "green", "blue", "negative"].includes(operation)) {
+                setBaseImage(imageUrl);
+            }
+        }
+        return true;
     } catch (error) {
-      console.error("Error processing image:", error);
+        console.error("Error processing image:", error);
+        throw error;
     }
-  };
+};
+
 
   const backToOriginalImage = () => {
-      setProcessedImage(originalImage);
-      setBaseImage(null);
-      setOperations([]);
-      setBaseOperation(null);
-      setBrightnessValue(127);
-      setThresholdingValue(127);
-      setHistogramImage(null);
-      setHistogramEqualizationImage(null);
-      setTempManualContrastImage(null);
+    setProcessedImage(originalImage);
+    setBaseImage(null);
+    setOperations([]);
+    setBaseOperation(null);
+    setBrightnessValue(127);
+    setThresholdingValue(127);
+    setHistogramImage(null);
+    setHistogramEqualizationImage(null);
+    setTempManualContrastImage(null);
+    // Aşağıdaki satırları ekleyin
+    setShowManualInputs(false);
+    setShowMultiLinearInputs(false);
   };
 
-  
+
   const resizeImage = (file, width, height, callback) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -139,13 +159,24 @@ export default function GorntuIsleme() {
   };
 
   const handleBrightnessChange = (event, newValue) => {
-    setBrightnessValue(newValue); // Slider değerini güncelle (0-255)
-    processImage("brightness", newValue); // İşlenmiş değeri gönder
+    setBrightnessValue(newValue);
+    processImage("brightness", newValue);
   };
 
   const handleThresholdingChange = (event, newValue) => {
-    setThresholdingValue(newValue); // Slider değerini güncelle (0-255)
-    processImage("thresholding", newValue); // İşlenmiş değeri gönder
+    setThresholdingValue(newValue);
+    processImage("thresholding", newValue);
+  };
+
+  const handleProcessButtonClick = (operation, processFn, value = null) => {
+    // Input alanlarını kapat
+    setShowManualInputs(false);
+    setShowMultiLinearInputs(false);
+    
+    // İlgili işlemi çalıştır
+    if (processFn) {
+      processFn(operation, value);
+    }
   };
 
 
@@ -187,7 +218,7 @@ export default function GorntuIsleme() {
       }
       return;
     }
-  
+
     let operationKey;
     switch (operation) {
       case "Linear Contrast Stretching":
@@ -200,7 +231,7 @@ export default function GorntuIsleme() {
       default:
         operationKey = "";
     }
-    
+
     if (operationKey) {
       processImage(operationKey);
     }
@@ -217,7 +248,7 @@ export default function GorntuIsleme() {
         operationKey = "circle";
         break;
       case "Ellipse":
-        operationKey = "ellipse";   
+        operationKey = "ellipse";
         break;
       case "Polygon":
         operationKey = "polygon";
@@ -230,9 +261,9 @@ export default function GorntuIsleme() {
     }
   };
 
-const handleCrop = () => {
+  const handleCrop = () => {
     processImage("crop", selectedFrame);
-};
+  };
 
   return (
     <Box>
@@ -249,7 +280,6 @@ const handleCrop = () => {
 
         {originalImage && (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: 3 }}>
-            {/* Orijinal ve İşlenmiş Resimler */}
             <Box sx={{ display: "flex", justifyContent: "center", gap: 4 }}>
               <Box>
                 <Typography variant="h6">Orijinal Resim</Typography>
@@ -257,11 +287,10 @@ const handleCrop = () => {
               </Box>
               <Box>
                 <Typography variant="h6">İşlenen Resim</Typography>
-                <img src={tempManualContrastImage || processedImage || originalImage}  alt="İşlenmiş" style={{ marginTop: 10 }} />
+                <img src={tempManualContrastImage || processedImage || originalImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
               </Box>
             </Box>
 
-            {/* Histogram Grafiği */}
             {(histogramImage || histogramEqualizationImage) && (
               <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                 {histogramImage && (
@@ -278,36 +307,69 @@ const handleCrop = () => {
         <BackToOriginal backToOriginalImage={backToOriginalImage} />
 
         <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2} marginTop="50px" textTransform={"none"}>
-          <ConvertToGray processImage={processImage} />
-          <RedFilter processImage={processImage} />
-          <GreenFilter processImage={processImage} />
-          <BlueFilter processImage={processImage} />
-          <NegativeFilter processImage={processImage} />
-          <BrightnessAdjustment
-            brightnessOn={brightnessOn}
-            setBrightnessOn={setBrightnessOn}
-            brightnessValue={brightnessValue}
-            handleBrightnessChange={(event, newValue) => {
-                setBrightnessValue(newValue);
-                processImage("brightness", newValue);
-            }}
-           />
-          <Thresholding
-            thresholdingOn={thresholdingOn}
-            setThresholdingOn={setThresholdingOn}
-            thresholdingValue={thresholdingValue}
-            handleThresholdingChange={handleThresholdingChange}
-          />
-          <Histogram processImage={processImage} />
-          <HistogramEqualization processImage={processImage} />
-          <ContrastOptions 
-            options={optionsContrast} 
-            onOperationSelect={handleContrastOperationSelect}
-            processedImage={processedImage}
-            originalImage={originalImage}
-          />
-          <FrameOptions options={optionsFrame} onOperationSelect={handleFrameOperationSelect} />
-          <CropImage processImage={processImage} selectedFrame={selectedFrame} />
+        <ConvertToGray processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <RedFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <GreenFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <BlueFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <NegativeFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <BrightnessAdjustment
+          brightnessOn={brightnessOn}
+          setBrightnessOn={(value) => {
+            setShowManualInputs(false);
+            setShowMultiLinearInputs(false);
+            setBrightnessOn(value);
+          }}
+          brightnessValue={brightnessValue}
+          handleBrightnessChange={(event, newValue) => {
+            setShowManualInputs(false);
+            setShowMultiLinearInputs(false);
+            handleBrightnessChange(event, newValue);
+          }}
+        />
+
+        <Thresholding
+          thresholdingOn={thresholdingOn}
+          setThresholdingOn={(value) => {
+            setShowManualInputs(false);
+            setShowMultiLinearInputs(false);
+            setThresholdingOn(value);
+          }}
+          thresholdingValue={thresholdingValue}
+          handleThresholdingChange={(event, newValue) => {
+            setShowManualInputs(false);
+            setShowMultiLinearInputs(false);
+            handleThresholdingChange(event, newValue);
+          }}
+        />
+        <Histogram processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
+        <HistogramEqualization processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+        <ContrastOptions
+          options={optionsContrast}
+          onOperationSelect={handleContrastOperationSelect}
+          processedImage={processedImage}
+          originalImage={originalImage}
+          showManualInputs={showManualInputs}
+          showMultiLinearInputs={showMultiLinearInputs}
+          setShowManualInputs={setShowManualInputs}
+          setShowMultiLinearInputs={setShowMultiLinearInputs}
+        />
+        <Translate
+          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+          originalImage={originalImage}
+          processedImage={processedImage}
+        />
+        <FrameOptions 
+          options={optionsFrame} 
+          onOperationSelect={(operation) => {
+            setShowManualInputs(false);
+            setShowMultiLinearInputs(false);
+            handleFrameOperationSelect(operation);
+          }} 
+        />
+        <CropImage 
+          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)} 
+          selectedFrame={selectedFrame} 
+        />
         </Box>
       </Box>
     </Box>

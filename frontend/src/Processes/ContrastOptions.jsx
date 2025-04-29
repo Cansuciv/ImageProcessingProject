@@ -18,12 +18,20 @@ import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 
-const ContrastOptions = ({ options, onOperationSelect, processedImage, originalImage }) => {
+const ContrastOptions = ({ 
+  options, 
+  onOperationSelect, 
+  processedImage, 
+  originalImage,
+  showManualInputs,
+  showMultiLinearInputs,
+  setShowManualInputs,
+  setShowMultiLinearInputs
+}) => {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showManualInputs, setShowManualInputs] = useState(false);
-  const [showMultiLinearInputs, setShowMultiLinearInputs] = useState(false);
+  const [showContrastInputs, setShowContrastInputs] = useState(false);
   const [inputValues, setInputValues] = useState({
     in_min: 50,
     in_max: 200,
@@ -48,18 +56,34 @@ const ContrastOptions = ({ options, onOperationSelect, processedImage, originalI
   };
 
   const handleMenuItemClick = (event, index) => {
+    const selectedOption = options[index];
+    const isManual = selectedOption === "Manual Contrast Stretching";
+    const isMultiLinear = selectedOption === "Multi Linear Contrast";
+    const isLinear = selectedOption === "Linear Contrast Stretching";
+
+    // Eğer aynı seçeneğe tekrar tıklanırsa, inputları kapat
+    if ((isManual && showManualInputs) || (isMultiLinear && showMultiLinearInputs)) {
+      setShowManualInputs(false);
+      setShowMultiLinearInputs(false);
+      setSelectedIndex(index);
+      setOpen(false);
+      return;
+    }
+
+    // Diğer durumlarda normal işlemleri yap
     setSelectedIndex(index);
     setOpen(false);
-    const isManual = options[index] === "Manual Contrast Stretching";
-    const isMultiLinear = options[index] === "Multi Linear Contrast";
-
+    
     setShowManualInputs(isManual);
     setShowMultiLinearInputs(isMultiLinear);
 
-    if (!isManual && !isMultiLinear) {
-      onOperationSelect(options[index]);
+    if (isLinear) {
+      onOperationSelect(selectedOption);
+      setShowManualInputs(false);
+      setShowMultiLinearInputs(false);
     }
   };
+
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -184,7 +208,17 @@ const ContrastOptions = ({ options, onOperationSelect, processedImage, originalI
             "&:hover": { backgroundColor: "purple" }
           }}
           onClick={() => {
-            if (!showManualInputs && !showMultiLinearInputs) handleToggle();
+            const selectedOption = options[selectedIndex];
+            const isManual = selectedOption === "Manual Contrast Stretching";
+            const isMultiLinear = selectedOption === "Multi Linear Contrast";
+            
+            // Eğer inputlar açıksa, aynı butona tıklayarak kapat
+            if ((isManual && showManualInputs) || (isMultiLinear && showMultiLinearInputs)) {
+              setShowManualInputs(false);
+              setShowMultiLinearInputs(false);
+            } else {
+              handleToggle();
+            }
           }}
         >
           {options[selectedIndex]}
@@ -310,7 +344,7 @@ const ContrastOptions = ({ options, onOperationSelect, processedImage, originalI
             <Button
               variant="contained"
               onClick={handleManualSubmit}
-              sx={{ mt: 2, backgroundColor: "purple" }}
+              sx={{ mt: 2, backgroundColor: "purple", '&:hover': { backgroundColor: "#6a1b9a" } }}
             >
               Manual Contrast Stretching Uygula
             </Button>
