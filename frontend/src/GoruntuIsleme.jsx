@@ -19,6 +19,7 @@ import ContrastOptions from './Processes/ContrastOptions.jsx';
 import Translate from './Processes/Translate.jsx';
 import Mirroring from './Processes/Mirroring.jsx';
 import Shearing from './Processes/Shearing.jsx';
+import ZoomOutZoomIn from './Processes/ZoomOutZoomIn.jsx';
 
 import FrameOptions from './Processes/FrameOptions.jsx';
 import CropImage from "./Processes/CropImage.jsx";
@@ -88,6 +89,10 @@ export default function GorntuIsleme() {
         if (["shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation) && value !== null) {
             formData.append("value", value.toString());
         }
+        // zoom-out/zoom-in operations
+        if (["zoom_out_pixel_replace", "zoom_out_with_interpolation", "zoom_in_pixel_replace", "zoom_in_with_interpolation"].includes(operation) && value !== null) {
+          formData.append("value", value.toString());
+      }
 
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
             responseType: operation === "histogram_equalization" ? "json" : "blob",
@@ -386,6 +391,11 @@ export default function GorntuIsleme() {
           originalImage={originalImage}
           processedImage={processedImage}
           setProcessedImage={setProcessedImage}
+        />
+        <ZoomOutZoomIn 
+          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+          originalImage={originalImage}
+          processedImage={processedImage}
         />
 
 

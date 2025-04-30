@@ -284,6 +284,47 @@ def shearing_y_manuel(image, sh_y):
                 sheared_image[y2, x] = image[y, x]
     return sheared_image
 
+# Zoom-in / Zoom-out
+def zoom_out_pixel_replace(image, scale_factor):
+    h, w = image.shape[:2]
+    new_h, new_w = h // scale_factor, w // scale_factor
+    downsampled_image = np.zeros((new_h, new_w, 3), dtype=np.uint8)
+    for y in range(new_h):
+        for x in range(new_w):
+            downsampled_image[y, x] = image[y * scale_factor, x * scale_factor]
+    return downsampled_image
+
+def zoom_out_with_interpolation(image, scale_factor):
+    h, w = image.shape[:2]
+    new_h, new_w = h // scale_factor, w // scale_factor
+    # Bilinear Interpolation ile küçültme
+    bilinear_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    # Bicubic Interpolation ile küçültme
+    bicubic_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+    # Lanczos Interpolation ile küçültme
+    lanczos_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+    return bilinear_resized, bicubic_resized, lanczos_resized
+
+def zoom_in_pixel_replace(image, scale_factor):
+    h, w = image.shape[:2]
+    new_h, new_w = h * scale_factor, w * scale_factor
+    zoomed_image = np.zeros((new_h, new_w, 3), dtype=np.uint8)
+    for y in range(h):
+        for x in range(w):
+            zoomed_image[y * scale_factor: (y + 1) * scale_factor, x * scale_factor: (x + 1) * scale_factor] = image[y, x]
+    return zoomed_image
+
+def zoom_in_with_interpolation(image, scale_factor):
+    h, w = image.shape[:2]
+    new_h, new_w = h * scale_factor, w * scale_factor
+    # Bilinear Interpolation ile büyütme
+    bilinear_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    # Bicubic Interpolation ile büyütme
+    bicubic_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+    # Lanczos Interpolation ile büyütme
+    lanczos_resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+    return bilinear_resized, bicubic_resized, lanczos_resized
+
 
 
 
@@ -413,6 +454,14 @@ def process_image(image, operation, value=None):
         return shear_y(image, value)
     elif operation == "shearing_y_manuel" and value is not None:
         return shearing_y_manuel(image, value)
+    elif operation == "zoom_out_pixel_replace" and value is not None:
+        return zoom_out_pixel_replace(image, value)
+    elif operation == "zoom_out_with_interpolation" and value is not None:
+        return zoom_out_with_interpolation(image, value)
+    elif operation == "zoom_in_pixel_replace" and value is not None:
+        return zoom_in_pixel_replace(image, value)
+    elif operation == "zoom_in_with_interpolation" and value is not None:
+        return zoom_in_with_interpolation(image, value)
 
 
     elif operation == "rectangle":
@@ -578,6 +627,65 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
+    # In your /process endpoint, update the zoom operations section:
+    if operation in ["zoom_out_pixel_replace", "zoom_out_with_interpolation", "zoom_in_pixel_replace", "zoom_in_with_interpolation"]:
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get scale factor
+            if operation in ["zoom_out_with_interpolation", "zoom_in_with_interpolation"]:
+                # For interpolation operations, we expect JSON data
+                data = json.loads(request.form.get("value", "{}"))
+                scale_factor = float(data.get("scale", 2))
+                interpolation_type = data.get("type", "bilinear")
+                
+                # Map interpolation type to OpenCV constant
+                interpolation_map = {
+                    "bilinear": cv2.INTER_LINEAR,
+                    "bicubic": cv2.INTER_CUBIC,
+                    "lanczos": cv2.INTER_LANCZOS4
+                }
+                interpolation = interpolation_map.get(interpolation_type, cv2.INTER_LINEAR)
+            else:
+                # For pixel replacement operations, just get the scale factor as a number
+                try:
+                    scale_factor = float(request.form.get("value", 2))
+                except:
+                    # If value is JSON (shouldn't happen for pixel replace), try to parse
+                    data = json.loads(request.form.get("value", "{}"))
+                    scale_factor = float(data.get("scale", 2))
+            
+            # Process based on operation type
+            if operation == "zoom_out_pixel_replace":
+                # Use nearest neighbor interpolation for pixel replacement
+                processed_img = cv2.resize(image, None, fx=1/scale_factor, fy=1/scale_factor, 
+                                        interpolation=cv2.INTER_NEAREST)
+            elif operation == "zoom_out_with_interpolation":
+                processed_img = cv2.resize(image, None, fx=1/scale_factor, fy=1/scale_factor, 
+                                        interpolation=interpolation)
+            elif operation == "zoom_in_pixel_replace":
+                # Use nearest neighbor interpolation for pixel replacement
+                processed_img = cv2.resize(image, None, fx=scale_factor, fy=scale_factor, 
+                                        interpolation=cv2.INTER_NEAREST)
+            elif operation == "zoom_in_with_interpolation":
+                processed_img = cv2.resize(image, None, fx=scale_factor, fy=scale_factor, 
+                                        interpolation=interpolation)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+                
     
     # Rest of your existing process function...
     value = request.form.get("value")
