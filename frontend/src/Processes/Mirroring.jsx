@@ -19,7 +19,7 @@ const mirrorOptions = [
   'Açısal Aynalama'
 ];
 
-export default function Mirroring({ processImage }) {
+export default function Mirroring({ processImage, originalImage, processedImage }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -84,6 +84,27 @@ export default function Mirroring({ processImage }) {
   };
 
   useEffect(() => {
+    // Diğer işlemler yapıldığında input alanını kapat
+    const handleGlobalClick = () => {
+      if (showAngleInput) {
+        setShowAngleInput(false);
+      }
+    };
+
+    if (showAngleInput) {
+      // 200ms sonra event listener'ı ekle (böylece kendi tıklamamızı yakalamayız)
+      const timer = setTimeout(() => {
+        window.addEventListener('click', handleGlobalClick);
+      }, 200);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('click', handleGlobalClick);
+      };
+    }
+  }, [showAngleInput]);
+
+  useEffect(() => {
     if (selectedIndex === 1) { // Sadece "Tıklanan Noktaya Göre Aynalama" seçiliyse
       const imgElement = document.querySelector('img[alt="İşlenmiş"]');
       
@@ -141,7 +162,8 @@ export default function Mirroring({ processImage }) {
             fontSize: 18,
             "&:hover": { backgroundColor: "purple" }
           }}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation(); // Global click eventini engelle
             if (mirrorOptions[selectedIndex] === "Açısal Aynalama") {
               handleMirrorOperation();
             }
@@ -160,7 +182,10 @@ export default function Mirroring({ processImage }) {
           aria-expanded={open ? 'true' : undefined}
           aria-label="select merge strategy"
           aria-haspopup="menu"
-          onClick={handleToggle}
+          onClick={(e) => {
+            e.stopPropagation(); // Global click eventini engelle
+            handleToggle();
+          }}
         >
           <ArrowDropDownIcon />
         </Button>
@@ -188,12 +213,19 @@ export default function Mirroring({ processImage }) {
           >
             <Paper sx={{ backgroundColor: "purple", color: "white" }}>
               <ClickAwayListener onClickAway={handleClose}>
-                <MenuList id="split-button-menu" autoFocusItem>
+                <MenuList 
+                  id="split-button-menu" 
+                  autoFocusItem
+                  onClick={(e) => e.stopPropagation()} // Menü içindeki tıklamaları yakala
+                >
                   {mirrorOptions.map((option, index) => (
                     <MenuItem
                       key={option}
                       selected={index === selectedIndex}
-                      onClick={(event) => handleMenuItemClick(event, index)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleMenuItemClick(event, index);
+                      }}
                     >
                       {option}
                     </MenuItem>
@@ -205,15 +237,18 @@ export default function Mirroring({ processImage }) {
         )}
       </Popper>
 
-      <Box sx={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        zIndex: 1,
-        backgroundColor: "white",
-        boxShadow: 3,
-        padding: showAngleInput ? '20px' : '0'
-      }}>
+      <Box 
+        sx={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          zIndex: 1,
+          backgroundColor: "white",
+          boxShadow: 3,
+          padding: showAngleInput ? '20px' : '0'
+        }}
+        onClick={(e) => e.stopPropagation()} // Input alanı içindeki tıklamaları yakala
+      >
         <Collapse in={showAngleInput}>
           <Box
             component="form"
@@ -241,7 +276,10 @@ export default function Mirroring({ processImage }) {
             />
             <Button
               variant="contained"
-              onClick={() => handleMirrorOperation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMirrorOperation();
+              }}
               sx={{ 
                 mt: 2, 
                 backgroundColor: "purple", 

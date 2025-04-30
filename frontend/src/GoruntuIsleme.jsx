@@ -18,6 +18,7 @@ import HistogramEqualization from './Processes/HistogramEqualization.jsx';
 import ContrastOptions from './Processes/ContrastOptions.jsx';
 import Translate from './Processes/Translate.jsx';
 import Mirroring from './Processes/Mirroring.jsx';
+import Shearing from './Processes/Shearing.jsx';
 
 import FrameOptions from './Processes/FrameOptions.jsx';
 import CropImage from "./Processes/CropImage.jsx";
@@ -49,7 +50,8 @@ export default function GorntuIsleme() {
     try {
         // Determine which image to use
         const imageToUse =
-            ["brightness", "thresholding", "manual_translate", "functional_translate"].includes(operation)
+            ["brightness", "thresholding", "manual_translate", "functional_translate", 
+             "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)
                 ? (baseImage || originalImage)
                 : (processedImage || originalImage);
 
@@ -75,12 +77,16 @@ export default function GorntuIsleme() {
             formData.append("dx", value.dx.toString());
             formData.append("dy", value.dy.toString());
         }
-        // Mirror işlemleri için parametre ekle
+        // Mirror operations
         if (operation === "mirror_image_by_center" && value?.x0) {
             formData.append("x0", value.x0.toString());
         }
         if (operation === "mirror_image_angle" && value?.angle) {
             formData.append("angle", value.angle.toString());
+        }
+        // Shearing operations
+        if (["shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation) && value !== null) {
+            formData.append("value", value.toString());
         }
 
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
@@ -105,8 +111,9 @@ export default function GorntuIsleme() {
             const imageUrl = URL.createObjectURL(axiosResponse.data);
             setProcessedImage(imageUrl);
 
-            // Update baseImage for color and mirror operations
-            if (["convert_gray", "red", "green", "blue", "negative"].includes(operation)) {
+            // Update baseImage for color, mirror and shearing operations
+            if (["convert_gray", "red", "green", "blue", "negative", 
+                "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
                 setBaseImage(imageUrl);
             }
             if (operation.includes("mirror")) {
@@ -119,7 +126,6 @@ export default function GorntuIsleme() {
         throw error;
     }
 };
-
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage);
@@ -370,11 +376,16 @@ export default function GorntuIsleme() {
           originalImage={originalImage}
           processedImage={processedImage}
         />
-
         <Mirroring 
           processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
           originalImage={originalImage}
           processedImage={processedImage}
+        />
+        <Shearing 
+          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+          originalImage={originalImage}
+          processedImage={processedImage}
+          setProcessedImage={setProcessedImage}
         />
 
 
@@ -387,10 +398,11 @@ export default function GorntuIsleme() {
             handleFrameOperationSelect(operation);
           }} 
         /> */}
+        {/*
         <CropImage 
           processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)} 
           selectedFrame={selectedFrame} 
-        />
+        />*/}
         </Box>
       </Box>
     </Box>

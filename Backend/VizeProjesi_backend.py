@@ -247,6 +247,46 @@ def mirror_image_angle(image,theta):
     return mirrored_image
 
 
+# Shearing functions
+def shear_x(image, sh_x):
+    h, w = image.shape[:2]
+    S = np.float32([[1, sh_x, 0], [0, 1, 0]])
+    new_w = w + int(sh_x * h)
+    sheared_image = cv2.warpAffine(image, S, (new_w, h))
+    return sheared_image
+
+def shearing_x_manuel(image, sh_x):
+    h, w = image.shape[:2]
+    new_w = w + int(sh_x * h)
+    sheared_image = np.zeros((h, new_w, 3), dtype=np.uint8)
+    for y in range(h):
+        for x in range(w):
+            x2 = int(x + sh_x * y)  
+            if 0 <= x2 < new_w:
+                sheared_image[y, x2] = image[y, x]
+    return sheared_image
+
+def shear_y(image, sh_y):
+    h, w = image.shape[:2]
+    S = np.float32([[1, 0, 0], [sh_y, 1, 0]])
+    new_h = h + int(sh_y * w)
+    sheared_image = cv2.warpAffine(image, S, (w, new_h))
+    return sheared_image
+
+def shearing_y_manuel(image, sh_y):
+    h, w = image.shape[:2]
+    new_h = h + int(sh_y * w)
+    sheared_image = np.zeros((new_h, w, 3), dtype=np.uint8)
+    for y in range(h):
+        for x in range(w):
+            y2 = int(y + sh_y * x)
+            if 0 <= y2 < new_h:
+                sheared_image[y2, x] = image[y, x]
+    return sheared_image
+
+
+
+
 def rectangle(image):
     frame_width = 10
     color = (0,0,255) 
@@ -365,6 +405,14 @@ def process_image(image, operation, value=None):
         return mirror_image_horizontal(image)
     elif operation == "mirror_image_angle" and value is not None:
         return mirror_image_angle(image, value)
+    elif operation == "shear_x" and value is not None:
+        return shear_x(image, value)
+    elif operation == "shearing_x_manuel" and value is not None:
+        return shearing_x_manuel(image, value)
+    elif operation == "shear_y" and value is not None:
+        return shear_y(image, value)
+    elif operation == "shearing_y_manuel" and value is not None:
+        return shearing_y_manuel(image, value)
 
 
     elif operation == "rectangle":
@@ -496,6 +544,40 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+    
+    # Handle shearing operations
+    if operation in ["shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"]:
+        try:
+            value = float(request.form.get("value", 0))
+            
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Process based on operation type
+            if operation == "shear_x":
+                processed_img = shear_x(image, value)
+            elif operation == "shearing_x_manuel":
+                processed_img = shearing_x_manuel(image, value)
+            elif operation == "shear_y":
+                processed_img = shear_y(image, value)
+            elif operation == "shearing_y_manuel":
+                processed_img = shearing_y_manuel(image, value)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
     
     # Rest of your existing process function...
     value = request.form.get("value")

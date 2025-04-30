@@ -224,9 +224,6 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
             noValidate
             autoComplete="off"
           >
-            <Typography variant="subtitle1" sx={{ mb: 2 }}>
-              {translateOptions[selectedIndex]} Parameters
-            </Typography>
             <TextField
               id="dx"
               label="dx (Horizontal)"
