@@ -348,83 +348,8 @@ def rotate_with_interpolations(image, angle):
     return rotated_bilinear, rotated_bicubic, rotated_lanczos
 
 
-
-def rectangle(image):
-    frame_width = 10
-    color = (0,0,255) 
-    image[:, 0:frame_width] = color # Sol kenar    
-    image[:, -frame_width:] = color # Sağ kenar   
-    image[0:frame_width, :] = color # Üst kenar 
-    image[-frame_width:, :] = color # Alt kenar 
-    return image
-
-def circle(image):
-    height, width = image.shape[:2]
-    center = (width // 2, height // 2) 
-    radius = min(width, height) // 2 - 10 
-    mask = np.zeros((height, width), dtype=np.uint8)
-    cv2.circle(mask, center, radius, 255, -1) 
-    result = cv2.bitwise_and(image, image, mask=mask)
-    background = np.full_like(image, (0,0,255) )
-    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
-    return result
-
-def ellipse(image):
-    height, width = image.shape[:2]
-    center = (width // 2, height // 2)
-    axes = (width // 2 - 10, height // 2 - 80)
-    angle = 0 
-    start_angle = 0  
-    end_angle = 360  
-    mask = np.zeros((height, width), dtype=np.uint8)
-    cv2.ellipse(mask, center, axes, angle, start_angle, end_angle, 255, -1)
-    result = cv2.bitwise_and(image, image, mask=mask)
-    background = np.full_like(image, (0,0,255) ) 
-    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
-    return result
-
-def polygon(image):
-    height, width = image.shape[:2]
-    points = np.array([
-        [width // 2, height // 4],  # Üst orta
-        [width // 4 * 3, height // 4 * 3],  # Sağ alt
-        [width // 2, height - height // 4],  # Alt orta
-        [width // 4, height // 4 * 3],  # Sol alt
-        [width // 4, height // 4],  # Sol üst
-        [width // 3, height // 6],
-        [width // 7, height // 13],
-        [width // 5, height // 5],
-        [width // 6, height // 7],
-        [width // 4, height // 7],
-        [width // 3, height // 5],
-    ], dtype=np.int32)
-    mask = np.zeros((height, width), dtype=np.uint8)
-    cv2.fillPoly(mask, [points], 255)
-    result = cv2.bitwise_and(image, image, mask=mask)
-    background = np.full_like(image, (0,0,255) ) 
-    result = cv2.bitwise_or(result, cv2.bitwise_and(background, background, mask=~mask))
-    return result
-
-def crop_image(image, shape):
-    height, width = image.shape[:2]
-    
-    # Çerçeve rengi (BGR formatında)
-    frame_color = np.array([0, 0, 255])
-
-    # Renk eşik değerleri (renk toleransı)
-    lower_bound = frame_color - 10  # Alt sınır
-    upper_bound = frame_color + 10  # Üst sınır
-    # Renk maskesi oluştur
-    mask = cv2.inRange(image, lower_bound, upper_bound)
-    # Maskeyi kullanarak çerçeve piksellerini bul
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return image  # Eğer çerçeve bulunamazsa orijinal görüntüyü döndür
-    # En büyük konturu bul (çerçeve)
-    largest_contour = max(contours, key=cv2.contourArea)
-    x, y, w, h = cv2.boundingRect(largest_contour)
-    # Kırpma işlemi
-    cropped_image = image[y:y+h, x:x+w]
+def crop_image(image, y1, y2, x1, x2):
+    cropped_image = image[y1:y2, x1:x2]
     return cropped_image
 
 # Resmi işleme fonksiyonları
@@ -455,14 +380,14 @@ def process_image(image, operation, value=None):
         return manual_contrast_stretching(image, in_min, in_max)
     elif operation == "multi_linear_contrast": 
         return multi_linear_contrast(image)
-    elif operation == "manual_translate": 
-        return manual_translate(image, dx, dy)
-    elif operation == "functional_translate": 
-        return functional_translate((image, dx, dy))
+    elif operation == "manual_translate"and value is not None:
+        return manual_translate(image, value, value)
+    elif operation == "functional_translate" and value is not None:
+        return functional_translate((image, value, value))
     elif operation == "mirror_image_by_center":
         return mirror_image_by_center(image, image.shape[1] // 2)
     elif operation == "handle_click_to_mirror":
-        return handle_click_to_mirror(image, image.shape[1] // 2)  # Default to center if no click
+        return handle_click_to_mirror(image, image.shape[1] // 2) 
     elif operation == "mirror_image_horizontal":
         return mirror_image_horizontal(image)
     elif operation == "mirror_image_angle" and value is not None:
@@ -487,18 +412,9 @@ def process_image(image, operation, value=None):
         return rotate_image_without_alias(image, value)
     elif operation == "rotate_with_interpolations" and value is not None:
         return rotate_with_interpolations(image, value)
+    elif operation == "crop_image" and value is not None:
+        return crop_image(image, value, value, value, value)
 
-
-    elif operation == "rectangle":
-        return rectangle(image)
-    elif operation == "circle":
-        return circle(image)
-    elif operation == "ellipse":
-        return ellipse(image)
-    elif operation == "polygon":
-        return polygon(image)
-    elif operation == "crop":
-        return crop_image(image, value)
     else:
         return image
 
@@ -710,7 +626,6 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-                
 
     # Rotation
     if operation in ["rotate_image_without_alias", "rotate_with_interpolations"]:
@@ -760,6 +675,47 @@ def process():
                 io.BytesIO(img_buffer.tobytes()),
                 mimetype="image/jpeg"
             )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    # Handle crop operation
+    if operation == "crop_image":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get crop parameters
+            y1 = int(request.form.get("y1", 0))
+            y2 = int(request.form.get("y2", image.shape[0]))
+            x1 = int(request.form.get("x1", 0))
+            x2 = int(request.form.get("x2", image.shape[1]))
+            
+            # Ensure coordinates are within bounds
+            height, width = image.shape[:2]
+            y1 = max(0, min(y1, height))
+            y2 = max(0, min(y2, height))
+            x1 = max(0, min(x1, width))
+            x2 = max(0, min(x2, width))
+            
+            # Ensure y1 < y2 and x1 < x2
+            y1, y2 = min(y1, y2), max(y1, y2)
+            x1, x2 = min(x1, x2), max(x1, x2)
+            
+            # Perform cropping
+            processed_img = image[y1:y2, x1:x2]
+            
+            # Return cropped image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     

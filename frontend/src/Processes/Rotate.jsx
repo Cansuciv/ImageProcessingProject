@@ -34,7 +34,7 @@ const Rotate = ({ processImage, processedImage, originalImage }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showInputs, setShowInputs] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [angle, setAngle] = useState(45);
+  const [angle, setAngle] = useState(30);
   const [interpolationType, setInterpolationType] = useState("bilinear");
 
   const handleToggle = () => {

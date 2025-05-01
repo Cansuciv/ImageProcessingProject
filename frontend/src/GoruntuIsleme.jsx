@@ -21,13 +21,12 @@ import Mirroring from './Processes/Mirroring.jsx';
 import Shearing from './Processes/Shearing.jsx';
 import ZoomOutZoomIn from './Processes/ZoomOutZoomIn.jsx';
 import Rotate from './Processes/Rotate.jsx'
-
+import CropImage from './Processes/CropImage.jsx';
 
 import FrameOptions from './Processes/FrameOptions.jsx';
-import CropImage from "./Processes/CropImage.jsx";
 
 const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
-const optionsFrame = ['Rectangle', 'Circle', 'Ellipse', "Polygon"];
+
 
 export default function GorntuIsleme() {
   const [originalImage, setOriginalImage] = useState(null);
@@ -38,7 +37,6 @@ export default function GorntuIsleme() {
   const [thresholdingValue, setThresholdingValue] = useState(127);
   const [histogramImage, setHistogramImage] = useState(null);
   const [histogramEqualizationImage, setHistogramEqualizationImage] = useState(null);
-  const [selectedFrame, setSelectedFrame] = useState(optionsFrame[0]);
   const [tempManualContrastImage, setTempManualContrastImage] = useState(null);
   const [baseImage, setBaseImage] = useState(null);
   const [baseOperation, setBaseOperation] = useState(null);
@@ -51,92 +49,101 @@ export default function GorntuIsleme() {
     const fileInput = document.querySelector('input[type="file"]');
 
     try {
-        // Determine which image to use
-        const imageToUse =
-            ["brightness", "thresholding", "manual_translate", "functional_translate", 
-             "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)
-                ? (baseImage || originalImage)
-                : (processedImage || originalImage);
+      // Determine which image to use
+      const imageToUse =
+        ["brightness", "thresholding", "manual_translate", "functional_translate",
+          "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)
+          ? (baseImage || originalImage)
+          : (processedImage || originalImage);
 
-        if (!imageToUse) {
-            console.error("No image available for processing");
-            return false;
-        }
+      if (!imageToUse) {
+        console.error("No image available for processing");
+        return false;
+      }
 
-        // Get image as blob
-        const response = await fetch(imageToUse);
-        const blob = await response.blob();
-        formData.append("image", blob, fileInput?.files[0]?.name || "image.jpg");
-        formData.append("operation", operation);
+      // Get image as blob
+      const response = await fetch(imageToUse);
+      const blob = await response.blob();
+      formData.append("image", blob, fileInput?.files[0]?.name || "image.jpg");
+      formData.append("operation", operation);
 
-        // Add specific parameters
-        if (operation === "brightness" && value !== null) {
-            formData.append("value", value.toString());
-        }
-        if (operation === "thresholding" && value !== null) {
-            formData.append("value", value.toString());
-        }
-        if (operation.includes("translate") && value) {
-            formData.append("dx", value.dx.toString());
-            formData.append("dy", value.dy.toString());
-        }
-        // Mirror operations
-        if (operation === "mirror_image_by_center" && value?.x0) {
-            formData.append("x0", value.x0.toString());
-        }
-        if (operation === "mirror_image_angle" && value?.angle) {
-            formData.append("angle", value.angle.toString());
-        }
-        // Shearing operations
-        if (["shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation) && value !== null) {
-            formData.append("value", value.toString());
-        }
-        // zoom-out/zoom-in operations
-        if (["zoom_out_pixel_replace", "zoom_out_with_interpolation", "zoom_in_pixel_replace", "zoom_in_with_interpolation"].includes(operation) && value !== null) {
-          formData.append("value", value.toString());
+      // Add specific parameters
+      if (operation === "brightness" && value !== null) {
+        formData.append("value", value.toString());
+      }
+      if (operation === "thresholding" && value !== null) {
+        formData.append("value", value.toString());
+      }
+      if (operation.includes("translate") && value) {
+        formData.append("dx", value.dx.toString());
+        formData.append("dy", value.dy.toString());
+      }
+      // Mirror operations
+      if (operation === "mirror_image_by_center" && value?.x0) {
+        formData.append("x0", value.x0.toString());
+      }
+      if (operation === "mirror_image_angle" && value?.angle) {
+        formData.append("angle", value.angle.toString());
+      }
+      // Shearing operations
+      if (["shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation) && value !== null) {
+        formData.append("value", value.toString());
+      }
+      // zoom-out/zoom-in operations
+      if (["zoom_out_pixel_replace", "zoom_out_with_interpolation", "zoom_in_pixel_replace", "zoom_in_with_interpolation"].includes(operation) && value !== null) {
+        formData.append("value", value.toString());
       }
       // Rotation
       if (["rotate_image_without_alias", "rotate_with_interpolations"].includes(operation) && value !== null) {
         formData.append("value", value.toString());
+      }
+      // Crop
+      if (operation.includes("crop_image") && value) {
+        const cropData = JSON.parse(value);
+        formData.append("y1", cropData.y1.toString());
+        formData.append("y2", cropData.y2.toString());
+        formData.append("x1", cropData.x1.toString());
+        formData.append("x2", cropData.x2.toString());
     }
 
-        const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
-            responseType: operation === "histogram_equalization" ? "json" : "blob",
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
 
-        // Handle different response types
-        if (operation === "histogram_equalization") {
-            const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
-            const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
-
-            setProcessedImage(equalizedImage);
-            setHistogramImage(histogramImage);
-            setHistogramEqualizationImage(histogramImage);
-        } else if (operation === "histogram") {
-            const imageUrl = URL.createObjectURL(axiosResponse.data);
-            setHistogramImage(imageUrl);
-        } else {
-            const imageUrl = URL.createObjectURL(axiosResponse.data);
-            setProcessedImage(imageUrl);
-
-            // Update baseImage for color, mirror and shearing operations
-            if (["convert_gray", "red", "green", "blue", "negative", 
-                "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
-                setBaseImage(imageUrl);
-            }
-            if (operation.includes("mirror")) {
-                setBaseImage(imageUrl);
-            }
+      const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
+        responseType: operation === "histogram_equalization" ? "json" : "blob",
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
-        return true;
+      });
+
+      // Handle different response types
+      if (operation === "histogram_equalization") {
+        const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
+        const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
+
+        setProcessedImage(equalizedImage);
+        setHistogramImage(histogramImage);
+        setHistogramEqualizationImage(histogramImage);
+      } else if (operation === "histogram") {
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setHistogramImage(imageUrl);
+      } else {
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setProcessedImage(imageUrl);
+
+        // Update baseImage for color, mirror and shearing operations
+        if (["convert_gray", "red", "green", "blue", "negative",
+          "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
+          setBaseImage(imageUrl);
+        }
+        if (operation.includes("mirror")) {
+          setBaseImage(imageUrl);
+        }
+      }
+      return true;
     } catch (error) {
-        console.error("Error processing image:", error);
-        throw error;
+      console.error("Error processing image:", error);
+      throw error;
     }
-};
+  };
 
   const backToOriginalImage = () => {
     setProcessedImage(originalImage);
@@ -201,7 +208,7 @@ export default function GorntuIsleme() {
     // Input alanlarını kapat
     setShowManualInputs(false);
     setShowMultiLinearInputs(false);
-    
+
     // İlgili işlemi çalıştır
     if (processFn) {
       processFn(operation, value);
@@ -266,33 +273,7 @@ export default function GorntuIsleme() {
     }
   };
 
-  const handleFrameOperationSelect = (operation) => {
-    setSelectedFrame(operation); // Seçilen çerçeve türünü state'e kaydet
-    let operationKey;
-    switch (operation) {
-      case "Rectangle":
-        operationKey = "rectangle";
-        break;
-      case "Circle":
-        operationKey = "circle";
-        break;
-      case "Ellipse":
-        operationKey = "ellipse";
-        break;
-      case "Polygon":
-        operationKey = "polygon";
-        break;
-      default:
-        operationKey = "";
-    }
-    if (operationKey) {
-      processImage(operationKey);
-    }
-  };
 
-  const handleCrop = () => {
-    processImage("crop", selectedFrame);
-  };
 
   return (
     <Box>
@@ -336,81 +317,86 @@ export default function GorntuIsleme() {
         <BackToOriginal backToOriginalImage={backToOriginalImage} />
 
         <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2} marginTop="50px" textTransform={"none"}>
-        <ConvertToGray processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <RedFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <GreenFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <BlueFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <NegativeFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <BrightnessAdjustment
-          brightnessOn={brightnessOn}
-          setBrightnessOn={(value) => {
-            setShowManualInputs(false);
-            setShowMultiLinearInputs(false);
-            setBrightnessOn(value);
-          }}
-          brightnessValue={brightnessValue}
-          handleBrightnessChange={(event, newValue) => {
-            setShowManualInputs(false);
-            setShowMultiLinearInputs(false);
-            handleBrightnessChange(event, newValue);
-          }}
-        />
+          <ConvertToGray processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <RedFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <GreenFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <BlueFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <NegativeFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <BrightnessAdjustment
+            brightnessOn={brightnessOn}
+            setBrightnessOn={(value) => {
+              setShowManualInputs(false);
+              setShowMultiLinearInputs(false);
+              setBrightnessOn(value);
+            }}
+            brightnessValue={brightnessValue}
+            handleBrightnessChange={(event, newValue) => {
+              setShowManualInputs(false);
+              setShowMultiLinearInputs(false);
+              handleBrightnessChange(event, newValue);
+            }}
+          />
 
-        <Thresholding
-          thresholdingOn={thresholdingOn}
-          setThresholdingOn={(value) => {
-            setShowManualInputs(false);
-            setShowMultiLinearInputs(false);
-            setThresholdingOn(value);
-          }}
-          thresholdingValue={thresholdingValue}
-          handleThresholdingChange={(event, newValue) => {
-            setShowManualInputs(false);
-            setShowMultiLinearInputs(false);
-            handleThresholdingChange(event, newValue);
-          }}
-        />
-        <Histogram processImage={(operation) => handleProcessButtonClick(operation, processImage)}/>
-        <HistogramEqualization processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
-        <ContrastOptions
-          options={optionsContrast}
-          onOperationSelect={handleContrastOperationSelect}
-          processedImage={processedImage}
-          originalImage={originalImage}
-          showManualInputs={showManualInputs}
-          showMultiLinearInputs={showMultiLinearInputs}
-          setShowManualInputs={setShowManualInputs}
-          setShowMultiLinearInputs={setShowMultiLinearInputs}
-        />
-        <Translate
-          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-          originalImage={originalImage}
-          processedImage={processedImage}
-        />
-        <Mirroring 
-          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-          originalImage={originalImage}
-          processedImage={processedImage}
-        />
-        <Shearing 
-          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-          originalImage={originalImage}
-          processedImage={processedImage}
-          setProcessedImage={setProcessedImage}
-        />
-        <ZoomOutZoomIn 
-          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-          originalImage={originalImage}
-          processedImage={processedImage}
-        />
-        <Rotate 
-          processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-          originalImage={originalImage}
-          processedImage={processedImage}
-        />
+          <Thresholding
+            thresholdingOn={thresholdingOn}
+            setThresholdingOn={(value) => {
+              setShowManualInputs(false);
+              setShowMultiLinearInputs(false);
+              setThresholdingOn(value);
+            }}
+            thresholdingValue={thresholdingValue}
+            handleThresholdingChange={(event, newValue) => {
+              setShowManualInputs(false);
+              setShowMultiLinearInputs(false);
+              handleThresholdingChange(event, newValue);
+            }}
+          />
+          <Histogram processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <HistogramEqualization processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+          <ContrastOptions
+            options={optionsContrast}
+            onOperationSelect={handleContrastOperationSelect}
+            processedImage={processedImage}
+            originalImage={originalImage}
+            showManualInputs={showManualInputs}
+            showMultiLinearInputs={showMultiLinearInputs}
+            setShowManualInputs={setShowManualInputs}
+            setShowMultiLinearInputs={setShowMultiLinearInputs}
+          />
+          <Translate
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+          />
+          <Mirroring
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+          />
+          <Shearing
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+            setProcessedImage={setProcessedImage}
+          />
+          <ZoomOutZoomIn
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+          />
+          <Rotate
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+          />
+          <CropImage
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            processedImage={processedImage}
+            originalImage={originalImage}
+          />
 
 
-        {/*
+          {/*
         <FrameOptions 
           options={optionsFrame} 
           onOperationSelect={(operation) => {
@@ -419,7 +405,7 @@ export default function GorntuIsleme() {
             handleFrameOperationSelect(operation);
           }} 
         /> */}
-        {/*
+          {/*
         <CropImage 
           processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)} 
           selectedFrame={selectedFrame} 
