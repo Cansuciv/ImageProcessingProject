@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Button from '@mui/material/Button';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -31,7 +31,6 @@ const ContrastOptions = ({
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showContrastInputs, setShowContrastInputs] = useState(false);
   const [inputValues, setInputValues] = useState({
     in_min: 50,
     in_max: 200,
@@ -84,6 +83,28 @@ const ContrastOptions = ({
     }
   };
 
+  // Dışarı tıklandığında veya başka bir işlem yapıldığında input alanlarını kapat
+  useEffect(() => {
+    const handleGlobalClick = (event) => {
+      // Eğer tıklanan element ContrastOptions bileşeninin bir parçası değilse
+      if (anchorRef.current && !anchorRef.current.contains(event.target)) {
+        setShowManualInputs(false);
+        setShowMultiLinearInputs(false);
+      }
+    };
+
+    if (showManualInputs || showMultiLinearInputs) {
+      // Event listener'ı biraz gecikmeli ekleyerek hemen kapanmasını önle
+      const timer = setTimeout(() => {
+        window.addEventListener('click', handleGlobalClick);
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('click', handleGlobalClick);
+      };
+    }
+  }, [showManualInputs, showMultiLinearInputs, setShowManualInputs, setShowMultiLinearInputs]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -207,7 +228,8 @@ const ContrastOptions = ({
             fontSize: 18,
             "&:hover": { backgroundColor: "purple" }
           }}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             const selectedOption = options[selectedIndex];
             const isManual = selectedOption === "Manual Contrast Stretching";
             const isMultiLinear = selectedOption === "Multi Linear Contrast";
@@ -233,7 +255,10 @@ const ContrastOptions = ({
           aria-expanded={open ? 'true' : undefined}
           aria-label="select merge strategy"
           aria-haspopup="menu"
-          onClick={handleToggle}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggle();
+          }}
         >
           <ArrowDropDownIcon />
         </Button>
@@ -261,12 +286,19 @@ const ContrastOptions = ({
           >
             <Paper sx={{ backgroundColor: "purple", color: "white" }}>
               <ClickAwayListener onClickAway={handleClose}>
-                <MenuList id="split-button-menu" autoFocusItem>
+                <MenuList 
+                  id="split-button-menu" 
+                  autoFocusItem
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {options.map((option, index) => (
                     <MenuItem
                       key={option}
                       selected={index === selectedIndex}
-                      onClick={(event) => handleMenuItemClick(event, index)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleMenuItemClick(event, index);
+                      }}
                     >
                       {option}
                     </MenuItem>
@@ -278,16 +310,19 @@ const ContrastOptions = ({
         )}
       </Popper>
 
-      <Box sx={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        zIndex: 1,
-        backgroundColor: "white",
-        boxShadow: 3,
-        width: showMultiLinearInputs ? '600px' : 'auto', // Sadece Multi Linear için geniş
-        padding: showMultiLinearInputs ? '20px' : '0' // Sadece Multi Linear için padding
-      }}>
+      <Box 
+        sx={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          zIndex: 1,
+          backgroundColor: "white",
+          boxShadow: 3,
+          width: showMultiLinearInputs ? '600px' : 'auto',
+          padding: showMultiLinearInputs ? '20px' : '0'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Manual Contrast Stretching Inputs */}
         <Collapse in={showManualInputs}>
           <Box
@@ -343,7 +378,10 @@ const ContrastOptions = ({
             />
             <Button
               variant="contained"
-              onClick={handleManualSubmit}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleManualSubmit();
+              }}
               sx={{ mt: 2, backgroundColor: "purple", '&:hover': { backgroundColor: "#6a1b9a" } }}
             >
               Manual Contrast Stretching Uygula
@@ -432,7 +470,10 @@ const ContrastOptions = ({
                 
                 {ranges.length > 1 && (
                   <IconButton
-                    onClick={() => removeRange(index)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeRange(index);
+                    }}
                     color="error"
                     size="small"
                     sx={{ 
@@ -451,7 +492,10 @@ const ContrastOptions = ({
               <Button
                 variant="outlined"
                 startIcon={<AddCircleIcon />}
-                onClick={addRange}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addRange();
+                }}
                 fullWidth
                 sx={{ py: 1.5 }}
               >
@@ -459,7 +503,10 @@ const ContrastOptions = ({
               </Button>
               <Button
                 variant="contained"
-                onClick={handleMultiLinearSubmit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMultiLinearSubmit();
+                }}
                 fullWidth
                 sx={{ 
                   py: 1.5,

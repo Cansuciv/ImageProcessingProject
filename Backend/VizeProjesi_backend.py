@@ -326,6 +326,27 @@ def zoom_in_with_interpolation(image, scale_factor):
     return bilinear_resized, bicubic_resized, lanczos_resized
 
 
+#Rotation
+def rotate_image_without_alias(image, angle):
+    h, w = image.shape[:2]
+    center = (w // 2, h // 2)
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    # Alias düzeltme olmadan döndürme (NEAREST interpolation)
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_NEAREST)
+    return rotated_image
+
+def rotate_with_interpolations(image, angle):
+    h, w = image.shape[:2]
+    center = (w // 2, h // 2)
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    # Anti-aliasing ile döndürme (bilinear interpolasyon)
+    rotated_bilinear = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_LINEAR)
+    # Bicubic interpolasyon ile döndürme
+    rotated_bicubic = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_CUBIC)
+    # Lanczos interpolasyon ile döndürme
+    rotated_lanczos = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_LANCZOS4)
+    return rotated_bilinear, rotated_bicubic, rotated_lanczos
+
 
 
 def rectangle(image):
@@ -462,6 +483,10 @@ def process_image(image, operation, value=None):
         return zoom_in_pixel_replace(image, value)
     elif operation == "zoom_in_with_interpolation" and value is not None:
         return zoom_in_with_interpolation(image, value)
+    elif operation == "rotate_image_without_alias" and value is not None:
+        return rotate_image_without_alias(image, value)
+    elif operation == "rotate_with_interpolations" and value is not None:
+        return rotate_with_interpolations(image, value)
 
 
     elif operation == "rectangle":
@@ -627,7 +652,7 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
-    # In your /process endpoint, update the zoom operations section:
+    #Zoom Out / Zoom In
     if operation in ["zoom_out_pixel_replace", "zoom_out_with_interpolation", "zoom_in_pixel_replace", "zoom_in_with_interpolation"]:
         try:
             # Read image directly from memory
@@ -686,6 +711,57 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
                 
+
+    # Rotation
+    if operation in ["rotate_image_without_alias", "rotate_with_interpolations"]:
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get rotation parameters
+            if operation == "rotate_with_interpolations":
+                # For interpolation operations, we expect JSON data
+                try:
+                    data = json.loads(request.form.get("value", "{}"))
+                    angle = float(data.get("angle", 45))
+                    interpolation_type = data.get("type", "bilinear")
+                    
+                    # Map interpolation type to OpenCV constant
+                    interpolation_map = {
+                        "bilinear": cv2.INTER_LINEAR,
+                        "bicubic": cv2.INTER_CUBIC,
+                        "lanczos": cv2.INTER_LANCZOS4
+                    }
+                    interpolation = interpolation_map.get(interpolation_type, cv2.INTER_LINEAR)
+                    
+                    # Process with interpolation
+                    height, width = image.shape[:2]
+                    center = (width // 2, height // 2)
+                    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+                    processed_img = cv2.warpAffine(image, rotation_matrix, (width, height), flags=interpolation)
+                    
+                except json.JSONDecodeError:
+                    # Fallback if value isn't JSON
+                    angle = float(request.form.get("value", 45))
+                    processed_img = rotate_image_without_alias(image, angle)
+            else:
+                # For simple rotation without anti-aliasing
+                angle = float(request.form.get("value", 45))
+                processed_img = rotate_image_without_alias(image, angle)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
     
     # Rest of your existing process function...
     value = request.form.get("value")
