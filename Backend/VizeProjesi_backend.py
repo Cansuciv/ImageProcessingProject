@@ -215,8 +215,8 @@ def handle_click_to_mirror(image):
             cv2.imshow("Aynalanmış", mirrored)
 
     cv2.imshow("Orijinal", image)
-    x= cv2.setMouseCallback("Orijinal", click_event)  
-    return x
+    cv2.setMouseCallback("Orijinal", click_event)  
+
 
 def mirror_image_horizontal(image):
     h, w = image.shape[:2]
@@ -352,6 +352,36 @@ def crop_image(image, y1, y2, x1, x2):
     cropped_image = image[y1:y2, x1:x2]
     return cropped_image
 
+
+
+#perspektif düzeltme
+def perspektif_duzeltme(image, pts1, pts2, width, height):
+    # Perspektif dönüşüm matrisini hesapla
+    matrix = cv2.getPerspectiveTransform(pts1, pts2)
+    # Perspektif dönüşümü uygula
+    warped_image = cv2.warpPerspective(image, matrix, (width, height))                            
+    return warped_image
+
+def interactive_perspective_correction(image, points, width, height):
+    try:
+        # Noktaları numpy array'e çevir
+        pts1 = np.float32(points)
+        pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+        
+        # Perspektif dönüşüm matrisini hesapla
+        matrix = cv2.getPerspectiveTransform(pts1, pts2)
+        
+        # Perspektif dönüşümünü uygula
+        warped_image = cv2.warpPerspective(image, matrix, (width, height))
+        
+        return warped_image
+    except Exception as e:
+        print(f"Perspektif düzeltme hatası: {str(e)}")
+        return image
+
+
+
+
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -414,6 +444,10 @@ def process_image(image, operation, value=None):
         return rotate_with_interpolations(image, value)
     elif operation == "crop_image" and value is not None:
         return crop_image(image, value, value, value, value)
+    elif operation == "perspektif_duzeltme" and value is not None:
+        return perspektif_duzeltme(image, value, value, value, value)
+    elif operation == "interactive_perspective_correction" and value is not None:
+        return interactive_perspective_correction(image, value, value)
 
     else:
         return image
@@ -718,7 +752,58 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-    
+        
+    # Handle perspective correction
+    if operation in ["perspektif_duzeltme", "interactive_perspective_correction"]:
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            if operation == "perspektif_duzeltme":
+                # Get parameters from form data
+                data = json.loads(request.form.get("value", "{}"))
+                pts1 = np.float32(data.get("pts1"))
+                pts2 = np.float32(data.get("pts2"))
+                width = int(data.get("width"))
+                height = int(data.get("height"))
+                
+                # Validate points
+                if len(pts1) != 4 or len(pts2) != 4:
+                    return jsonify({"error": "Exactly 4 points required for both source and destination"}), 400
+                    
+                processed_img = perspektif_duzeltme(image, pts1, pts2, width, height)
+                
+            elif operation == "interactive_perspective_correction":
+                data = json.loads(request.form.get("value", "{}"))
+                points = data.get("points", [])
+                width = int(data.get("width", 500))
+                height = int(data.get("height", 500))
+                
+                if len(points) != 4:
+                    return jsonify({"error": "Exactly 4 points required"}), 400
+                    
+                pts1 = np.float32(points)
+                pts2 = np.float32([[0, 0], [width, 0], [0, height], [width, height]])
+                
+                processed_img = cv2.warpPerspective(image, 
+                    cv2.getPerspectiveTransform(pts1, pts2), 
+                    (width, height))
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
     # Rest of your existing process function...
     value = request.form.get("value")
     if value is not None:
