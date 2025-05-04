@@ -25,7 +25,7 @@
   import Perspective from './Processes/Perspective.jsx';
   import MeanMedianFilter from './Processes/MeanMedianFilter.jsx';
   import GaussianBlurFilter from './Processes/GaussianBlurFilter.jsx';
-
+  import ConservativeFilter from './Processes/ConservativeFilter.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -444,7 +444,11 @@
               originalImage={originalImage}
               processedImage={processedImage}
             />
-            
+            <ConservativeFilter 
+              processImage={(operation) => handleProcessButtonClick(operation, processImage)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
 
             {/*
           <FrameOptions 

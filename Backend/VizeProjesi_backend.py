@@ -380,14 +380,14 @@ def interactive_perspective_correction(image, points, width, height):
         return image
 
 
-# Update the mean_filter function:
+# mean_filter:
 def mean_filter(image, kernel_size):
     # Parse the kernel size string (format: "x,y")
     x, y = map(int, kernel_size.split(','))
     mean_filtered = cv2.blur(image, (x,y))
     return mean_filtered
 
-# Update the median_filter function:
+# median_filter 
 def median_filter(image, filter_size):
     median_filtered = cv2.medianBlur(image, filter_size )
     return median_filtered
@@ -396,6 +396,38 @@ def gaussian_blur_filter(image, kernel_size, sigma):
     x, y = map(int, kernel_size.split(','))
     gaussian_blurred = cv2.GaussianBlur(image, (x,y), sigma)
     return gaussian_blurred
+
+def conservative_smoothing_filter(image):
+    filtered_image = image.copy()
+    shape = image.shape
+    
+    if len(shape) == 2:  # Gri tonlamalı görüntü
+        rows, cols = shape
+        channels = 1
+    else:  # Renkli görüntü
+        rows, cols, channels = shape
+
+    for i in range(1, rows-1):
+        for j in range(1, cols-1):
+            if channels == 1:  # Gri tonlamalı görüntü
+                region = image[i-1:i+2, j-1:j+2]
+                min_val = np.min(region)
+                max_val = np.max(region)
+                if image[i, j] < min_val:
+                    filtered_image[i, j] = min_val
+                elif image[i, j] > max_val:
+                    filtered_image[i, j] = max_val
+            else:  # Renkli görüntü (BGR)
+                for c in range(channels):
+                    region = image[i-1:i+2, j-1:j+2, c]
+                    min_val = np.min(region)
+                    max_val = np.max(region)
+                    if image[i, j, c] < min_val:
+                        filtered_image[i, j, c] = min_val
+                    elif image[i, j, c] > max_val:
+                        filtered_image[i, j, c] = max_val
+                        
+    return filtered_image
 
 
 # Resmi işleme fonksiyonları
@@ -470,6 +502,8 @@ def process_image(image, operation, value=None):
         return median_filter(image, value)
     elif operation == "gaussian_blur_filter" and value is not None:
         return gaussian_blur_filter(image, (value, value), value)
+    elif operation == "conservative_smoothing_filter":
+        return conservative_smoothing_filter(image)
 
     else:
         return image
@@ -882,7 +916,29 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+    # Handle Conservative Smoothing Filter
+    if operation == "conservative_smoothing_filter":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            processed_img = conservative_smoothing_filter(image)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+                    
     
             
     # Rest of your existing process function...

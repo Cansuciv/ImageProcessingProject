@@ -73,7 +73,6 @@ const GaussianBlurFilter = ({ processImage, processedImage, originalImage }) => 
       }
     } catch (error) {
       console.error("Gaussian Blur error:", error);
-      alert(`Error: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
