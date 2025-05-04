@@ -24,7 +24,7 @@
   import CropImage from './Processes/CropImage.jsx';
   import Perspective from './Processes/Perspective.jsx';
   import MeanMedianFilter from './Processes/MeanMedianFilter.jsx';
-
+  import GaussianBlurFilter from './Processes/GaussianBlurFilter.jsx';
 
   import FrameOptions from './Processes/FrameOptions.jsx';
 
@@ -128,13 +128,18 @@
         }
 
         // Mean and Median filters
-       // In the processImage function, update the filter parameter handling:
-      if (operation.includes("mean_filter") && value) {
-        formData.append("kernel_size", value.kernel_size);
-      }
-      if (operation.includes("median_filter") && value) {
-        formData.append("filter_size", value.filter_size.toString());
-      }
+        if (operation.includes("mean_filter") && value) {
+          formData.append("kernel_size", value.kernel_size);
+        }
+        if (operation.includes("median_filter") && value) {
+          formData.append("filter_size", value.filter_size.toString());
+        }
+
+        // Gaussian Blur Filter 
+        if (operation.includes("gaussian_blur_filter") && value) {
+          formData.append("kernel_size", value.kernel_size.toString());
+          formData.append("sigma", value.sigma.toString());
+        }
     
     
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
@@ -430,6 +435,11 @@
               originalImage={originalImage}
             />
             <MeanMedianFilter
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
+            <GaussianBlurFilter
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               originalImage={originalImage}
               processedImage={processedImage}

@@ -381,9 +381,9 @@ def interactive_perspective_correction(image, points, width, height):
 
 
 # Update the mean_filter function:
-def mean_filter(image, kernel_size_str):
+def mean_filter(image, kernel_size):
     # Parse the kernel size string (format: "x,y")
-    x, y = map(int, kernel_size_str.split(','))
+    x, y = map(int, kernel_size.split(','))
     mean_filtered = cv2.blur(image, (x,y))
     return mean_filtered
 
@@ -391,6 +391,11 @@ def mean_filter(image, kernel_size_str):
 def median_filter(image, filter_size):
     median_filtered = cv2.medianBlur(image, filter_size )
     return median_filtered
+
+def gaussian_blur_filter(image, kernel_size, sigma):
+    x, y = map(int, kernel_size.split(','))
+    gaussian_blurred = cv2.GaussianBlur(image, (x,y), sigma)
+    return gaussian_blurred
 
 
 # Resmi işleme fonksiyonları
@@ -459,11 +464,12 @@ def process_image(image, operation, value=None):
         return perspektif_duzeltme(image, value, value, value, value)
     elif operation == "interactive_perspective_correction" and value is not None:
         return interactive_perspective_correction(image, value, value)
-    # Add these to the process_image function
     elif operation == "mean_filter" and value is not None:
         return mean_filter(image, (value, value))
     elif operation == "median_filter" and value is not None:
         return median_filter(image, value)
+    elif operation == "gaussian_blur_filter" and value is not None:
+        return gaussian_blur_filter(image, (value, value), value)
 
     else:
         return image
@@ -843,6 +849,31 @@ def process():
                     filter_size = 5
                 processed_img = median_filter(image, filter_size)
             
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    # Handle Gaussian Blur Filter correction
+    if operation == "gaussian_blur_filter":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get kernel size as "x,y" string from form data
+            kernel_size = request.form.get("kernel_size", "5,5")
+            sigma = float(request.form.get("sigma", 1.0))
+            processed_img = gaussian_blur_filter(image, kernel_size, sigma)
+
             # Encode and return image
             _, img_buffer = cv2.imencode('.jpg', processed_img)
             return send_file(
