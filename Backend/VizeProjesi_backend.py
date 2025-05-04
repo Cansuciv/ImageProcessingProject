@@ -380,6 +380,17 @@ def interactive_perspective_correction(image, points, width, height):
         return image
 
 
+# Update the mean_filter function:
+def mean_filter(image, kernel_size_str):
+    # Parse the kernel size string (format: "x,y")
+    x, y = map(int, kernel_size_str.split(','))
+    mean_filtered = cv2.blur(image, (x,y))
+    return mean_filtered
+
+# Update the median_filter function:
+def median_filter(image, filter_size):
+    median_filtered = cv2.medianBlur(image, filter_size )
+    return median_filtered
 
 
 # Resmi işleme fonksiyonları
@@ -448,6 +459,11 @@ def process_image(image, operation, value=None):
         return perspektif_duzeltme(image, value, value, value, value)
     elif operation == "interactive_perspective_correction" and value is not None:
         return interactive_perspective_correction(image, value, value)
+    # Add these to the process_image function
+    elif operation == "mean_filter" and value is not None:
+        return mean_filter(image, (value, value))
+    elif operation == "median_filter" and value is not None:
+        return median_filter(image, value)
 
     else:
         return image
@@ -804,6 +820,40 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
+    # Handle Mean/Median Filter correction
+    if operation in ["mean_filter", "median_filter"]:
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            if operation == "mean_filter":
+                # Get kernel size as "x,y" string from form data
+                kernel_size = request.form.get("kernel_size", "5,5")
+                processed_img = mean_filter(image, kernel_size)
+            elif operation == "median_filter":
+                # Get filter size as integer from form data
+                try:
+                    filter_size = int(request.form.get("filter_size", 5))
+                except:
+                    filter_size = 5
+                processed_img = median_filter(image, filter_size)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+            
+    
+            
     # Rest of your existing process function...
     value = request.form.get("value")
     if value is not None:

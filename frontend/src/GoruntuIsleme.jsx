@@ -23,6 +23,8 @@
   import Rotate from './Processes/Rotate.jsx'
   import CropImage from './Processes/CropImage.jsx';
   import Perspective from './Processes/Perspective.jsx';
+  import MeanMedianFilter from './Processes/MeanMedianFilter.jsx';
+
 
   import FrameOptions from './Processes/FrameOptions.jsx';
 
@@ -124,6 +126,16 @@
             height: perspectiveData.height
           }));
         }
+
+        // Mean and Median filters
+       // In the processImage function, update the filter parameter handling:
+      if (operation.includes("mean_filter") && value) {
+        formData.append("kernel_size", value.kernel_size);
+      }
+      if (operation.includes("median_filter") && value) {
+        formData.append("filter_size", value.filter_size.toString());
+      }
+    
     
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
           responseType: operation === "histogram_equalization" ? "json" : "blob",
@@ -416,6 +428,11 @@
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               processedImage={processedImage}
               originalImage={originalImage}
+            />
+            <MeanMedianFilter
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
             />
             
 
