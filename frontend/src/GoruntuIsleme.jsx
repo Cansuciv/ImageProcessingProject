@@ -26,6 +26,8 @@
   import MeanMedianFilter from './Processes/MeanMedianFilter.jsx';
   import GaussianBlurFilter from './Processes/GaussianBlurFilter.jsx';
   import ConservativeFilter from './Processes/ConservativeFilter.jsx';
+  import CrimminsSpeckleFilter from './Processes/CrimminsSpeckleFilter.jsx';
+
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -54,10 +56,11 @@
       try {
         // Determine which image to use
         const imageToUse =
-          ["brightness", "thresholding", "manual_translate", "functional_translate",
-            "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)
-            ? (baseImage || originalImage)
-            : (processedImage || originalImage);
+        ["brightness", "thresholding", "manual_translate", "functional_translate",
+          "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
+          "crimmins_speckle_filter"].includes(operation)  // Add the new operation here
+          ? (baseImage || originalImage)
+          : (processedImage || originalImage);
     
         if (!imageToUse) {
           console.error("No image available for processing");
@@ -449,6 +452,11 @@
               originalImage={originalImage}
               processedImage={processedImage}
             />
+            <CrimminsSpeckleFilter 
+            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+            originalImage={originalImage}
+            processedImage={processedImage}
+          />
 
             {/*
           <FrameOptions 

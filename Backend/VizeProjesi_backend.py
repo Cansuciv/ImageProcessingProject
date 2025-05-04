@@ -430,6 +430,31 @@ def conservative_smoothing_filter(image):
     return filtered_image
 
 
+def crimmins_speckle_filter(image, threshold):
+    
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    filtered_image = image.copy()
+    shape = image.shape
+    
+    if len(shape) == 2:  # Gri tonlamalı görüntü
+        rows, cols = shape
+    else:  # Renkli görüntü
+        rows, cols, _ = shape
+
+    for i in range(1, rows-1):
+        for j in range(1, cols-1):
+            center_pixel = image[i, j]
+            neighbors = [image[i-1, j], image[i+1, j], image[i, j-1], image[i, j+1]]
+            avg_neighbors = np.mean(neighbors)
+
+            if center_pixel > avg_neighbors + threshold:
+                filtered_image[i, j] = avg_neighbors
+            elif center_pixel < avg_neighbors - threshold:
+                filtered_image[i, j] = avg_neighbors
+    cv2.imshow("crimmins_speckle_filter", filtered_image)
+    return filtered_image
+
+
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -504,6 +529,8 @@ def process_image(image, operation, value=None):
         return gaussian_blur_filter(image, (value, value), value)
     elif operation == "conservative_smoothing_filter":
         return conservative_smoothing_filter(image)
+    elif operation == "crimmins_speckle_filter" and value is not None:
+        return crimmins_speckle_filter(image, value)
 
     else:
         return image
@@ -929,6 +956,34 @@ def process():
                 return jsonify({"error": "Invalid image"}), 400
                 
             processed_img = conservative_smoothing_filter(image)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    # Handle Crimmins Speckle Filter
+    if operation == "crimmins_speckle_filter":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get threshold value from form data
+            try:
+                threshold = int(request.form.get("value", 10))
+            except:
+                threshold = 10
+                
+            processed_img = crimmins_speckle_filter(image, threshold)
             
             # Encode and return image
             _, img_buffer = cv2.imencode('.jpg', processed_img)
