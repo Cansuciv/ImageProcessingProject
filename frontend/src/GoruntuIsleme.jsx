@@ -28,6 +28,8 @@
   import ConservativeFilter from './Processes/ConservativeFilter.jsx';
   import CrimminsSpeckleFilter from './Processes/CrimminsSpeckleFilter.jsx';
   import FourierTransformFilter from './Processes/FourierTransformFilter.jsx';
+  import BandGecirenDurduranFiltre from './Processes/BandGecirenDurduranFiltre.jsx';
+
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -49,7 +51,8 @@
     const [showManualInputs, setShowManualInputs] = useState(false);
     const [showMultiLinearInputs, setShowMultiLinearInputs] = useState(false);
     const [fourierHistogramImage, setFourierHistogramImage] = useState(null);
-
+    const [bandFilterPlotImage, setBandFilterPlotImage] = useState(null);
+    const [showBandFilterPlot, setShowBandFilterPlot] = useState(false);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -213,7 +216,9 @@
       setThresholdingValue(127);
       setHistogramImage(null);
       setHistogramEqualizationImage(null);
-      setFourierHistogramImage(null); // Bu satır önemli
+      setFourierHistogramImage(null);
+      setBandFilterPlotImage(null);
+      setShowBandFilterPlot(false);
       setTempManualContrastImage(null);
       setShowManualInputs(false);
       setShowMultiLinearInputs(false);
@@ -358,8 +363,45 @@
                   <Typography variant="h6">İşlenen Resim</Typography>
                   <img src={tempManualContrastImage || processedImage || originalImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
                 </Box>
-              </Box>
+              </Box> 
 
+              {/* Grafik gösterim bölümü */}
+              {showBandFilterPlot && bandFilterPlotImage && (
+                <Box sx={{ 
+                  width: '100%', 
+                  display: 'flex', 
+                  justifyContent: 'center',
+                  backgroundColor: '#f5f5f5',
+                  padding: 2,
+                  borderRadius: 1,
+                  boxShadow: 1
+                }}>
+                  <Box>
+                    <Typography variant="h6" gutterBottom>Band Filtre Grafiği</Typography>
+                    <img 
+                      src={bandFilterPlotImage} 
+                      alt="Band Filtre Grafiği" 
+                      style={{ maxWidth: '100%', height: 'auto' }} 
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={() => {
+                        setShowBandFilterPlot(false);
+                        setBandFilterPlotImage(null);
+                      }}
+                      sx={{ 
+                        mt: 2, 
+                        backgroundColor: "#9c27b0",
+                        '&:hover': { backgroundColor: "#7b1fa2" }
+                      }}
+                    >
+                      Grafiği Kapat
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Diğer grafikler (histogram vb.) */}
               {(histogramImage || histogramEqualizationImage || fourierHistogramImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
@@ -378,6 +420,19 @@
                     <Box>
                       <Typography variant="h6">Fourier Spektrumu</Typography>
                       <img src={fourierHistogramImage} alt="Fourier Spektrumu" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                 {bandFilterPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Band Filtre Grafiği</Typography>
+                      <img src={bandFilterPlotImage} alt="Band Filtre Grafiği" style={{ marginTop: 10 }} />
+                      <Button
+                        variant="contained"
+                        onClick={() => setBandFilterPlotImage(null)}
+                        sx={{ mt: 1, backgroundColor: "#9c27b0" }}
+                      >
+                        Kapat
+                      </Button>
                     </Box>
                   )}
                 </Box>
@@ -496,6 +551,13 @@
                 originalImage={originalImage}
                 processedImage={processedImage}
                 setFourierHistogramImage={setFourierHistogramImage}
+            />
+            <BandGecirenDurduranFiltre
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setBandFilterPlotImage={setBandFilterPlotImage}
+              setShowBandFilterPlot={setShowBandFilterPlot}
             />
 
             {/*

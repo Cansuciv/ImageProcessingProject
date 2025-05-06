@@ -8,7 +8,7 @@ import io
 import json
 import zipfile
 import base64
-
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app)
@@ -519,58 +519,71 @@ def fourier_filter_plot(image, radius):
     try:
         # Görüntüyü gri tonlamalı yap
         if len(image.shape) == 3:
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            image_gray = image.copy()
         
-        # Fourier dönüşümü uygula
-        f_transform = np.fft.fft2(image)
+        # Fourier dönüşümünü uygula
+        f_transform = np.fft.fft2(image_gray)
         f_transform_shifted = np.fft.fftshift(f_transform)
-        
-        # Magnitude spektrumunu hesapla (log scale)
-        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted))
-        
-        # Filtreleri oluştur
-        rows, cols = image.shape
-        center = (cols//2, rows//2)
-        
-        # Low-pass filter mask
+
+        # Magnitude spektrumunu hesapla
+        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted) + 1)  # log(0) hatasına karşı +1
+
+        # Filtre maskeleri
+        rows, cols = image_gray.shape
+        center = (cols // 2, rows // 2)
+
+        # LPF maskesi
         mask_lpf = np.zeros((rows, cols), np.uint8)
         cv2.circle(mask_lpf, center, radius, 1, -1)
-        
-        # High-pass filter mask
+
+        # HPF maskesi
         mask_hpf = np.ones((rows, cols), np.uint8)
         cv2.circle(mask_hpf, center, radius, 0, -1)
-        
-        # Create plot
+
+        # Filtreleri uygula ve ters dönüşüm
+        lpf_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_lpf)).real
+        hpf_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_hpf)).real
+
+        # Normalize işlemleri
+        magnitude_spectrum = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        lpf_result = cv2.normalize(lpf_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        hpf_result = cv2.normalize(hpf_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+        # Görselleştirme
         plt.figure(figsize=(12, 6))
-        
-        # Fourier Magnitude Spectrum
-        plt.subplot(1, 3, 1)
+
+        plt.subplot(1, 4, 1)
+        plt.imshow(image_gray, cmap='gray')
+        plt.title("Orijinal Görüntü")
+        plt.axis('off')
+
+        plt.subplot(1, 4, 2)
         plt.imshow(magnitude_spectrum, cmap='gray')
         plt.title("Fourier Spektrumu")
         plt.axis('off')
-        
-        # LPF Sonucu
-        plt.subplot(1, 3, 2)
-        plt.imshow(mask_lpf, cmap='gray')
+
+        plt.subplot(1, 4, 3)
+        plt.imshow(lpf_result, cmap='gray')
         plt.title(f"LPF (r={radius})")
         plt.axis('off')
-        
-        # HPF Sonucu
-        plt.subplot(1, 3, 3)
-        plt.imshow(mask_hpf, cmap='gray')
+
+        plt.subplot(1, 4, 4)
+        plt.imshow(hpf_result, cmap='gray')
         plt.title(f"HPF (r={radius})")
         plt.axis('off')
-        
+
         plt.tight_layout()
-        
-        # Sonucu belleğe kaydet
+
+        # Belleğe kaydet
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
         plt.close()
-        
+
         return buf
-        
+
     except Exception as e:
         print(f"Fourier filter plot error: {str(e)}")
         raise e
@@ -591,7 +604,7 @@ def band_geciren_filtre(f_transform_shifted, D1, D2):
     filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
 
     # Normalize
-    filtered_image_normalized = cv2.normalize(filtered_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    filtered_image_normalized = (cv2.normalize(filtered_image, None, 0, 1.0, cv2.NORM_MINMAX) * 255).astype(np.uint8)
     cv2.imshow("band_geciren_filtre", filtered_image_normalized)
     return filtered_image_normalized
 
@@ -611,32 +624,95 @@ def band_durduran_filtre(f_transform_shifted, D1, D2):
     filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
 
     # Normalize
-    filtered_image_normalized = cv2.normalize(filtered_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    filtered_image_normalized = (cv2.normalize(filtered_image, None, 0, 1.0, cv2.NORM_MINMAX) * 255).astype(np.uint8)
     cv2.imshow("band_durduran_filtre", filtered_image_normalized)
     return filtered_image_normalized
 
 
-def band_gecirendurduran_plot(image, magnitude_spectrum, band_pass_result, band_stop_result):
-    plt.figure(figsize=(12,6))
-
-    plt.subplot(1, 4, 1)
-    plt.imshow(image, cmap='gray')
-    plt.title("Orijinal Görüntü")
-
-    plt.subplot(1, 4, 2)
-    plt.imshow(magnitude_spectrum, cmap='gray')
-    plt.title("Fourier Magnitude Spectrum")
-
-    plt.subplot(1, 4, 3)
-    plt.imshow(band_pass_result, cmap='gray')
-    plt.title("Band Geçiren Filtre Sonucu")
-
-    plt.subplot(1, 4, 4)
-    plt.imshow(band_stop_result, cmap='gray')
-    plt.title("Band Durduran Filtre Sonucu")
-
-    plt.tight_layout()
-    plt.show()
+def band_gecirendurduran_plot(image, D1, D2):
+    try:
+        # Convert image to grayscale if needed
+        if len(image.shape) == 3:
+            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            image_gray = image.copy()
+        
+        # Perform Fourier transform
+        f_transform = np.fft.fft2(image_gray)
+        f_transform_shifted = np.fft.fftshift(f_transform)
+        
+        # Calculate magnitude spectrum (log scale)
+        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted))
+        
+        # Create band pass and band stop filters
+        rows, cols = image_gray.shape
+        center = (cols//2, rows//2)
+        
+        # Band pass filter
+        mask_band_pass = np.zeros((rows, cols), np.uint8)
+        for u in range(rows):
+            for v in range(cols):
+                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+                if D1 <= D <= D2:
+                    mask_band_pass[u, v] = 1
+        
+        # Band stop filter
+        mask_band_stop = np.ones((rows, cols), np.uint8)
+        for u in range(rows):
+            for v in range(cols):
+                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+                if D1 <= D <= D2:
+                    mask_band_stop[u, v] = 0
+        
+        # Apply filters
+        band_pass_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_band_pass)).real
+        band_stop_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_band_stop)).real
+        
+        # Normalize results
+        band_pass_result = cv2.normalize(band_pass_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        band_stop_result = cv2.normalize(band_stop_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        magnitude_spectrum = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        
+        # Create plot
+        plt.figure(figsize=(12, 6))
+        
+        # Original Image
+        plt.subplot(1, 4, 1)
+        plt.imshow(image_gray, cmap='gray')
+        plt.title("Original Image")
+        plt.axis('off')
+        
+        # Fourier Magnitude Spectrum
+        plt.subplot(1, 4, 2)
+        plt.imshow(magnitude_spectrum, cmap='gray')
+        plt.title("Fourier Spectrum")
+        plt.axis('off')
+        
+        # Band Pass Filter Result
+        plt.subplot(1, 4, 3)
+        plt.imshow(band_pass_result, cmap='gray')
+        plt.title(f"Band Pass")
+        plt.axis('off')
+        
+        # Band Stop Filter Result
+        plt.subplot(1, 4, 4)
+        plt.imshow(band_stop_result, cmap='gray')
+        plt.title(f"Band Stop")
+        plt.axis('off')
+        
+        plt.tight_layout()
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close()
+        
+        return buf
+        
+    except Exception as e:
+        print(f"Band filter plot error: {str(e)}")
+        raise e
 
 
 # Resmi işleme fonksiyonları
@@ -727,7 +803,23 @@ def process_image(image, operation, value=None):
     elif operation == "fourier_filter_plot" and value is not None:
         f_transform_shifted, _ = fourier_transform(image)
         return fourier_filter_plot(f_transform_shifted, value)
-   
+    # Add these to the process_image function
+    elif operation == "band_geciren_filtre" and value is not None:
+        D1, D2 = map(int, value.split(','))
+        f_transform_shifted, _ = fourier_transform(image)
+        return band_geciren_filtre(f_transform_shifted, D1, D2)
+    elif operation == "band_durduran_filtre" and value is not None:
+        D1, D2 = map(int, value.split(','))
+        f_transform_shifted, _ = fourier_transform(image)
+        return band_durduran_filtre(f_transform_shifted, D1, D2)
+    elif operation == "band_gecirendurduran_plot" and value is not None:
+        D1, D2 = map(int, value.split(','))
+        f_transform_shifted, spectrum_path = fourier_transform(image)
+        magnitude_spectrum = cv2.imread(spectrum_path, cv2.IMREAD_GRAYSCALE)
+        band_pass = band_geciren_filtre(f_transform_shifted, D1, D2)
+        band_stop = band_durduran_filtre(f_transform_shifted, D1, D2)
+        return band_gecirendurduran_plot(image, magnitude_spectrum, band_pass, band_stop)
+    
 
 
 @app.route("/process", methods=["POST"])
@@ -1285,6 +1377,90 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+    # Add this to the /process route, before the "Rest of your existing process function..." part
+    if operation in ["band_geciren_filtre", "band_durduran_filtre"]:
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get D1 and D2 values
+            value = request.form.get("value", "10,30")
+            D1, D2 = map(int, value.split(','))
+            
+            # Convert to grayscale if needed
+            if len(image.shape) == 3:
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            
+            # Perform Fourier transform
+            f_transform = np.fft.fft2(image)
+            f_transform_shifted = np.fft.fftshift(f_transform)
+            
+            if operation == "band_geciren_filtre":
+                # Band pass filter
+                filtered_image = band_geciren_filtre(f_transform_shifted, D1, D2)
+                
+                # Convert to 3-channel if needed
+                if len(filtered_image.shape) == 2:
+                    filtered_image = cv2.cvtColor(filtered_image, cv2.COLOR_GRAY2BGR)
+                
+                # Encode and return
+                _, img_buffer = cv2.imencode('.jpg', filtered_image)
+                return send_file(
+                    io.BytesIO(img_buffer.tobytes()),
+                    mimetype="image/jpeg"
+                )
+                
+            elif operation == "band_durduran_filtre":
+                # Band stop filter
+                filtered_image = band_durduran_filtre(f_transform_shifted, D1, D2)
+                
+                # Convert to 3-channel if needed
+                if len(filtered_image.shape) == 2:
+                    filtered_image = cv2.cvtColor(filtered_image, cv2.COLOR_GRAY2BGR)
+                
+                # Encode and return
+                _, img_buffer = cv2.imencode('.jpg', filtered_image)
+                return send_file(
+                    io.BytesIO(img_buffer.tobytes()),
+                    mimetype="image/jpeg"
+                )
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    if operation == "band_gecirendurduran_plot":
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get D1 and D2 values
+            value = request.form.get("value", "20,50")
+            D1, D2 = map(int, value.split(','))
+            
+            # Create the plot
+            buf = band_gecirendurduran_plot(image, D1, D2)
+            
+            return send_file(
+                buf,
+                mimetype="image/png"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    
             
     # Rest of your existing process function...
     value = request.form.get("value")
