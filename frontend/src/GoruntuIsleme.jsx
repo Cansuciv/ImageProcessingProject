@@ -27,7 +27,7 @@
   import GaussianBlurFilter from './Processes/GaussianBlurFilter.jsx';
   import ConservativeFilter from './Processes/ConservativeFilter.jsx';
   import CrimminsSpeckleFilter from './Processes/CrimminsSpeckleFilter.jsx';
-
+  import FourierTransformFilter from './Processes/FourierTransformFilter.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -48,6 +48,8 @@
     const [operations, setOperations] = useState([]);
     const [showManualInputs, setShowManualInputs] = useState(false);
     const [showMultiLinearInputs, setShowMultiLinearInputs] = useState(false);
+    const [fourierHistogramImage, setFourierHistogramImage] = useState(null);
+
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -55,16 +57,19 @@
     
       try {
         // Determine which image to use
-        const imageToUse =
-        ["brightness", "thresholding", "manual_translate", "functional_translate",
-          "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
-          "crimmins_speckle_filter"].includes(operation)  // Add the new operation here
-          ? (baseImage || originalImage)
-          : (processedImage || originalImage);
-    
+        const imageToUse = 
+        ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
+        "fourier_histogram"].includes(operation)
+            ? (processedImage || originalImage)
+            : (["brightness", "thresholding", "manual_translate", "functional_translate",
+                "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
+                "crimmins_speckle_filter"].includes(operation)
+                ? (baseImage || originalImage)
+                : (processedImage || originalImage));
+
         if (!imageToUse) {
-          console.error("No image available for processing");
-          return false;
+            console.error("No image available for processing");
+            return false;
         }
     
         // Get image as blob
@@ -75,10 +80,10 @@
     
         // Add specific parameters
         if (operation === "brightness" && value !== null) {
-          formData.append("value", value.toString());
+            formData.append("value", value.toString());
         }
         if (operation === "thresholding" && value !== null) {
-          formData.append("value", value.toString());
+            formData.append("value", value.toString());
         }
         if (operation.includes("translate") && value) {
           formData.append("dx", value.dx.toString());
@@ -143,45 +148,61 @@
           formData.append("kernel_size", value.kernel_size.toString());
           formData.append("sigma", value.sigma.toString());
         }
+
+        // Add Fourier transform parameters
+        if (["fourier_low_pass_filter", "fourier_high_pass_filter", "fourier_filter_plot"].includes(operation) && value !== null) {
+          formData.append("value", value.toString());
+        }
     
-    
+        let responseType;
+        if (operation === "histogram_equalization") {
+            responseType = "json";
+        } else if (operation === "fourier_filter_plot" || operation === "histogram") {
+            responseType = "blob";
+        } else {
+            responseType = "blob";
+        }
+
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
-          responseType: operation === "histogram_equalization" ? "json" : "blob",
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+            responseType: responseType,
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
         });
     
         // Handle different response types
         if (operation === "histogram_equalization") {
-          const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
-          const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
+            const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
+            const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
     
-          setProcessedImage(equalizedImage);
-          setHistogramImage(histogramImage);
-          setHistogramEqualizationImage(histogramImage);
-        } else if (operation === "histogram") {
-          const imageUrl = URL.createObjectURL(axiosResponse.data);
-          setHistogramImage(imageUrl);
-        } else {
-          const imageUrl = URL.createObjectURL(axiosResponse.data);
-          setProcessedImage(imageUrl);
+            setProcessedImage(equalizedImage);
+            setHistogramImage(histogramImage);
+            setHistogramEqualizationImage(histogramImage);
+            return true;
+        } 
+        else if (operation === "histogram" || operation === "fourier_filter_plot") {
+            // Doğrudan Blob döndür
+            return axiosResponse.data;
+        } 
+        else {
+            const imageUrl = URL.createObjectURL(axiosResponse.data);
+            setProcessedImage(imageUrl);
     
-          // Update baseImage for color, mirror and shearing operations
-          if (["convert_gray", "red", "green", "blue", "negative",
-            "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
-            setBaseImage(imageUrl);
-          }
-          if (operation.includes("mirror")) {
-            setBaseImage(imageUrl);
-          }
+            // Update baseImage for specific operations
+            if (["convert_gray", "red", "green", "blue", "negative",
+                "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
+                setBaseImage(imageUrl);
+            }
+            if (operation.includes("mirror")) {
+                setBaseImage(imageUrl);
+            }
+            return true;
         }
-        return true;
-      } catch (error) {
+    } catch (error) {
         console.error("Error processing image:", error);
         throw error;
-      }
-    };
+    }
+};
 
     const backToOriginalImage = () => {
       setProcessedImage(originalImage);
@@ -192,8 +213,8 @@
       setThresholdingValue(127);
       setHistogramImage(null);
       setHistogramEqualizationImage(null);
+      setFourierHistogramImage(null); // Bu satır önemli
       setTempManualContrastImage(null);
-      // Aşağıdaki satırları ekleyin
       setShowManualInputs(false);
       setShowMultiLinearInputs(false);
     };
@@ -339,12 +360,24 @@
                 </Box>
               </Box>
 
-              {(histogramImage || histogramEqualizationImage) && (
+              {(histogramImage || histogramEqualizationImage || fourierHistogramImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
                       <Typography variant="h6">Histogram Grafiği</Typography>
                       <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {histogramEqualizationImage && (
+                    <Box>
+                      <Typography variant="h6">Eşitlenmiş Histogram</Typography>
+                      <img src={histogramEqualizationImage} alt="Eşitlenmiş Histogram" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {fourierHistogramImage && (
+                    <Box>
+                      <Typography variant="h6">Fourier Spektrumu</Typography>
+                      <img src={fourierHistogramImage} alt="Fourier Spektrumu" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                 </Box>
@@ -456,7 +489,14 @@
             processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
             originalImage={originalImage}
             processedImage={processedImage}
-          />
+            />
+
+            <FourierTransformFilter
+                processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+                originalImage={originalImage}
+                processedImage={processedImage}
+                setFourierHistogramImage={setFourierHistogramImage}
+            />
 
             {/*
           <FrameOptions 
