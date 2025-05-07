@@ -517,77 +517,79 @@ def fourier_high_pass_filter(f_transform_shifted, radius):
 
 def fourier_filter_plot(image, radius):
     try:
-        # Görüntüyü gri tonlamalı yap
+        # Convert to grayscale if needed
         if len(image.shape) == 3:
             image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             image_gray = image.copy()
         
-        # Fourier dönüşümünü uygula
+        # Perform Fourier transform
         f_transform = np.fft.fft2(image_gray)
         f_transform_shifted = np.fft.fftshift(f_transform)
 
-        # Magnitude spektrumunu hesapla
-        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted) + 1)  # log(0) hatasına karşı +1
+        # Magnitude spectrum (log scale)
+        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted))
 
-        # Filtre maskeleri
+        # Create filters
         rows, cols = image_gray.shape
         center = (cols // 2, rows // 2)
 
-        # LPF maskesi
+        # LPF mask
         mask_lpf = np.zeros((rows, cols), np.uint8)
         cv2.circle(mask_lpf, center, radius, 1, -1)
 
-        # HPF maskesi
+        # HPF mask
         mask_hpf = np.ones((rows, cols), np.uint8)
         cv2.circle(mask_hpf, center, radius, 0, -1)
 
-        # Filtreleri uygula ve ters dönüşüm
-        lpf_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_lpf)).real
-        hpf_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_hpf)).real
+        # Apply LPF
+        filtered_lpf = f_transform_shifted * mask_lpf
+        lpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_lpf)).real
 
-        # Normalize işlemleri
-        magnitude_spectrum = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        lpf_result = cv2.normalize(lpf_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        hpf_result = cv2.normalize(hpf_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        # Apply HPF
+        filtered_hpf = f_transform_shifted * mask_hpf
+        hpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_hpf)).real
 
-        # Görselleştirme
+        # Create plot
         plt.figure(figsize=(12, 6))
 
+        # Original Image
         plt.subplot(1, 4, 1)
         plt.imshow(image_gray, cmap='gray')
-        plt.title("Orijinal Görüntü")
+        plt.title("Original Image")
         plt.axis('off')
 
+        # Fourier Spectrum
         plt.subplot(1, 4, 2)
         plt.imshow(magnitude_spectrum, cmap='gray')
-        plt.title("Fourier Spektrumu")
+        plt.title("Fourier Spectrum")
         plt.axis('off')
 
+        # LPF Result
         plt.subplot(1, 4, 3)
         plt.imshow(lpf_result, cmap='gray')
-        plt.title(f"LPF (r={radius})")
+        plt.title("LPF")
         plt.axis('off')
 
+        # HPF Result
         plt.subplot(1, 4, 4)
         plt.imshow(hpf_result, cmap='gray')
-        plt.title(f"HPF (r={radius})")
+        plt.title("HPF")
         plt.axis('off')
 
         plt.tight_layout()
 
-        # Belleğe kaydet
+        # Save plot to buffer
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
         plt.close()
-
+        
         return buf
 
     except Exception as e:
         print(f"Fourier filter plot error: {str(e)}")
         raise e
-
 
 def band_geciren_filtre(f_transform_shifted, D1, D2):
     rows, cols = f_transform_shifted.shape
@@ -1366,18 +1368,18 @@ def process():
             if image is None:
                 return jsonify({"error": "Invalid image"}), 400
             
-            # Process the image and create the plot
-            buf = fourier_filter_plot(image, radius)
+            # Create the plot
+            plot_buffer = fourier_filter_plot(image, radius)
             
             # Return the image directly
             return send_file(
-                buf,
+                plot_buffer,
                 mimetype="image/png"
             )
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        
+                    
 
     # Add this to the /process route, before the "Rest of your existing process function..." part
     if operation in ["band_geciren_filtre", "band_durduran_filtre"]:
@@ -1509,7 +1511,7 @@ def get_histogram_image():
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Origin', '*')  
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     return response

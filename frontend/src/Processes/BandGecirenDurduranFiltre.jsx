@@ -68,32 +68,36 @@ const BandGecirenDurduranFiltre = ({
       console.error("No image available");
       return false;
     }
-
+  
     setIsProcessing(true);
     let operation;
     let value = `${D1},${D2}`;
-
+  
     try {
       switch (selectedIndex) {
         case 0: // Band Geçiren
           operation = "band_geciren_filtre";
-          await processImage(operation, value);
-          setBandFilterPlotImage(null);
-          setShowBandFilterPlot(false);
-          return true;
+          const result1 = await processImage(operation, value);
+          if (result1) {
+            setBandFilterPlotImage(null);
+            setShowBandFilterPlot(false);
+          }
+          return result1;
         case 1: // Band Durduran
           operation = "band_durduran_filtre";
-          await processImage(operation, value);
-          setBandFilterPlotImage(null);
-          setShowBandFilterPlot(false);
-          return true;
+          const result2 = await processImage(operation, value);
+          if (result2) {
+            setBandFilterPlotImage(null);
+            setShowBandFilterPlot(false);
+          }
+          return result2;
         case 2: // Grafik
           operation = "band_gecirendurduran_plot";
           const plotResult = await processImage(operation, value);
           if (plotResult instanceof Blob) {
             const imageUrl = URL.createObjectURL(plotResult);
             setBandFilterPlotImage(imageUrl);
-            setShowBandFilterPlot(true); // Grafiği göster
+            setShowBandFilterPlot(true);
           }
           return true;
         default:

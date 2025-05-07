@@ -22,8 +22,8 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
   const [showInputs, setShowInputs] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [inputValues, setInputValues] = useState({
-    dx: 0,
-    dy: 0
+    dx: 40,
+    dy: 150
   });
 
   const handleToggle = () => {

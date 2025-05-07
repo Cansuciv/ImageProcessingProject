@@ -13,9 +13,15 @@ import TextField from '@mui/material/TextField';
 import Collapse from '@mui/material/Collapse';
 import Typography from "@mui/material/Typography";
 
-const fourierOptions = ["Fourier Transform", "LPF", "HPF", "Grafik"];
+const fourierOptions = ["Fourier Transform", "LPF", "HPF", "Faurier Grafik"];
 
-const FourierTransformFilter = ({ processImage, processedImage, originalImage, setFourierHistogramImage }) => {
+const FourierTransformFilter = ({ 
+  processImage, 
+  processedImage, 
+  originalImage, 
+  setFourierHistogramImage,
+  setShowFourierPlot  // Make sure this prop is received
+}) => {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -89,24 +95,28 @@ const FourierTransformFilter = ({ processImage, processedImage, originalImage, s
       case 3: // Grafik
         operation = "fourier_filter_plot";
         value = radius;
-        break;
+        // İşlenen resmi değiştirmemek için sadece grafiği göster
+        try {
+          const result = await processImage(operation, value);
+          if (result instanceof Blob) {
+            const imageUrl = URL.createObjectURL(result);
+            setFourierHistogramImage(imageUrl);
+            setShowFourierPlot(true);
+          }
+          return true;
+        } catch (error) {
+          console.error("Fourier transform error:", error);
+          return false;
+        } finally {
+          setIsProcessing(false);
+        }
       default:
         operation = "fourier_transform";
     }
     
+    // Diğer işlemler için normal akış
     try {
-      const result = await processImage(operation, value);
-      
-      if (selectedIndex === 3) {
-        // Grafik için blob response alıyoruz
-        if (result instanceof Blob) {
-          const imageUrl = URL.createObjectURL(result);
-          setHistogramImage(imageUrl);
-          if (setFourierHistogramImage) {
-            setFourierHistogramImage(imageUrl);
-          }
-        }
-      }
+      await processImage(operation, value);
       return true;
     } catch (error) {
       console.error("Fourier transform error:", error);

@@ -51,6 +51,7 @@
     const [showManualInputs, setShowManualInputs] = useState(false);
     const [showMultiLinearInputs, setShowMultiLinearInputs] = useState(false);
     const [fourierHistogramImage, setFourierHistogramImage] = useState(null);
+    const [showFourierPlot, setShowFourierPlot] = useState(false);
     const [bandFilterPlotImage, setBandFilterPlotImage] = useState(null);
     const [showBandFilterPlot, setShowBandFilterPlot] = useState(false);
 
@@ -61,18 +62,18 @@
       try {
         // Determine which image to use
         const imageToUse = 
-        ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
-        "fourier_histogram"].includes(operation)
+          ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
+          ].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
                 "crimmins_speckle_filter"].includes(operation)
                 ? (baseImage || originalImage)
                 : (processedImage || originalImage));
-
+    
         if (!imageToUse) {
-            console.error("No image available for processing");
-            return false;
+          console.error("No image available for processing");
+          return false;
         }
     
         // Get image as blob
@@ -80,6 +81,8 @@
         const blob = await response.blob();
         formData.append("image", blob, fileInput?.files[0]?.name || "image.jpg");
         formData.append("operation", operation);
+
+        
     
         // Add specific parameters
         if (operation === "brightness" && value !== null) {
@@ -153,14 +156,15 @@
         }
 
         // Add Fourier transform parameters
-        if (["fourier_low_pass_filter", "fourier_high_pass_filter", "fourier_filter_plot"].includes(operation) && value !== null) {
+        if (["fourier_low_pass_filter", "fourier_high_pass_filter"].includes(operation) && value !== null) {
           formData.append("value", value.toString());
         }
+        
     
         let responseType;
         if (operation === "histogram_equalization") {
             responseType = "json";
-        } else if (operation === "fourier_filter_plot" || operation === "histogram") {
+        } else if (operation ===  "histogram") {
             responseType = "blob";
         } else {
             responseType = "blob";
@@ -175,33 +179,53 @@
     
         // Handle different response types
         if (operation === "histogram_equalization") {
-            const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
-            const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
-    
-            setProcessedImage(equalizedImage);
-            setHistogramImage(histogramImage);
-            setHistogramEqualizationImage(histogramImage);
-            return true;
-        } 
-        else if (operation === "histogram" || operation === "fourier_filter_plot") {
-            // Doğrudan Blob döndür
-            return axiosResponse.data;
-        } 
-        else {
-            const imageUrl = URL.createObjectURL(axiosResponse.data);
-            setProcessedImage(imageUrl);
-    
-            // Update baseImage for specific operations
-            if (["convert_gray", "red", "green", "blue", "negative",
-                "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
-                setBaseImage(imageUrl);
-            }
-            if (operation.includes("mirror")) {
-                setBaseImage(imageUrl);
-            }
-            return true;
+          const equalizedImage = `data:image/jpeg;base64,${axiosResponse.data.equalized_image}`;
+          const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
+          setProcessedImage(equalizedImage);
+          setHistogramEqualizationImage(histogramImage);
+          return true;
+      } 
+      else if (operation === "histogram") {
+          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+          const imageUrl = URL.createObjectURL(axiosResponse.data);
+          setHistogramImage(imageUrl);
+          setHistogramEqualizationImage(null); // Eski histogram eşitleme verilerini temizle
+          setFourierHistogramImage(null); // Fourier histogramını temizle
+          return true;
+      } 
+      else if (operation === "fourier_filter_plot") {
+          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+          const imageUrl = URL.createObjectURL(axiosResponse.data);
+          setFourierHistogramImage(imageUrl);
+          setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
+          setHistogramEqualizationImage(null); // Fourier histogramını temizle
+          return true;
+      } 
+      else if (operation === "band_gecirendurduran_plot") {
+        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setBandFilterPlotImage(imageUrl);
+        setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
+        setHistogramEqualizationImage(null); // Fourier histogramını temizle
+        setFourierHistogramImage(null);
+        return true;
+    } 
+      else {
+          const imageUrl = URL.createObjectURL(axiosResponse.data);
+          setProcessedImage(imageUrl);
+      
+          // Update baseImage for specific operations
+          if (["convert_gray", "red", "green", "blue", "negative",
+              "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
+              setBaseImage(imageUrl);
+          }
+          if (operation.includes("mirror")) {
+              setBaseImage(imageUrl);
+          }
+          return true;
         }
-    } catch (error) {
+      }
+      catch (error) {
         console.error("Error processing image:", error);
         throw error;
     }
@@ -363,46 +387,11 @@
                   <Typography variant="h6">İşlenen Resim</Typography>
                   <img src={tempManualContrastImage || processedImage || originalImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
                 </Box>
-              </Box> 
+              </Box>
 
-              {/* Grafik gösterim bölümü */}
-              {showBandFilterPlot && bandFilterPlotImage && (
-                <Box sx={{ 
-                  width: '100%', 
-                  display: 'flex', 
-                  justifyContent: 'center',
-                  backgroundColor: '#f5f5f5',
-                  padding: 2,
-                  borderRadius: 1,
-                  boxShadow: 1
-                }}>
-                  <Box>
-                    <Typography variant="h6" gutterBottom>Band Filtre Grafiği</Typography>
-                    <img 
-                      src={bandFilterPlotImage} 
-                      alt="Band Filtre Grafiği" 
-                      style={{ maxWidth: '100%', height: 'auto' }} 
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={() => {
-                        setShowBandFilterPlot(false);
-                        setBandFilterPlotImage(null);
-                      }}
-                      sx={{ 
-                        mt: 2, 
-                        backgroundColor: "#9c27b0",
-                        '&:hover': { backgroundColor: "#7b1fa2" }
-                      }}
-                    >
-                      Grafiği Kapat
-                    </Button>
-                  </Box>
-                </Box>
-              )}
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage || fourierHistogramImage) && (
+              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -416,25 +405,21 @@
                       <img src={histogramEqualizationImage} alt="Eşitlenmiş Histogram" style={{ marginTop: 10 }} />
                     </Box>
                   )}
+
                   {fourierHistogramImage && (
                     <Box>
                       <Typography variant="h6">Fourier Spektrumu</Typography>
                       <img src={fourierHistogramImage} alt="Fourier Spektrumu" style={{ marginTop: 10 }} />
                     </Box>
                   )}
-                 {bandFilterPlotImage && (
+
+                  {bandFilterPlotImage && (
                     <Box>
                       <Typography variant="h6">Band Filtre Grafiği</Typography>
                       <img src={bandFilterPlotImage} alt="Band Filtre Grafiği" style={{ marginTop: 10 }} />
-                      <Button
-                        variant="contained"
-                        onClick={() => setBandFilterPlotImage(null)}
-                        sx={{ mt: 1, backgroundColor: "#9c27b0" }}
-                      >
-                        Kapat
-                      </Button>
                     </Box>
                   )}
+                  
                 </Box>
               )}
             </Box>
@@ -547,13 +532,14 @@
             />
 
             <FourierTransformFilter
-                processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
-                originalImage={originalImage}
-                processedImage={processedImage}
-                setFourierHistogramImage={setFourierHistogramImage}
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setFourierHistogramImage={setFourierHistogramImage}
+              setShowFourierPlot={setShowFourierPlot}
             />
             <BandGecirenDurduranFiltre
-              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              processImage={processImage}
               originalImage={originalImage}
               processedImage={processedImage}
               setBandFilterPlotImage={setBandFilterPlotImage}
