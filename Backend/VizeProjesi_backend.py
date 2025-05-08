@@ -931,6 +931,112 @@ def butterworth_plot(image, D0, n):
     except Exception as e:
         print(f"Butterworth filter plot error: {str(e)}")
         raise e
+    
+
+def gaussian_filter(image_shape, D0, highpass=False):
+    rows, cols = image_shape[:2]
+    mask = np.zeros((rows, cols), np.float32)
+    center = (cols // 2, rows // 2)
+
+    for u in range(rows):
+        for v in range(cols):
+            D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+            H = np.exp(-(D**2) / (2 * (D0**2))) if not highpass else 1 - np.exp(-(D**2) / (2 * (D0**2)))
+            mask[u, v] = H
+
+    return mask
+
+def gaussian_lpf(image, D0):
+    channels = cv2.split(image) if len(image.shape) == 3 else [image]
+    filtered_channels = []
+
+    for ch in channels:
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+
+        mask = gaussian_filter(ch.shape, D0)
+        filtered = f_shifted * mask
+
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        img_back = cv2.normalize(img_back, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        filtered_channels.append(img_back)
+
+    result = cv2.merge(filtered_channels) if len(filtered_channels) > 1 else filtered_channels[0]
+    cv2.imshow("Gaussian LPF", result)
+    return result
+
+def gaussian_hpf(image, D0):
+    channels = cv2.split(image) if len(image.shape) == 3 else [image]
+    filtered_channels = []
+
+    for ch in channels:
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+
+        mask = gaussian_filter(ch.shape, D0, highpass=True)
+        filtered = f_shifted * mask
+
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        img_back = cv2.normalize(img_back, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        filtered_channels.append(img_back)
+
+    result = cv2.merge(filtered_channels) if len(filtered_channels) > 1 else filtered_channels[0]
+    cv2.imshow("Gaussian HPF", result)
+    return result
+
+def gaussian_plot(image, D0):
+    try:
+        channels = cv2.split(image) if len(image.shape) == 3 else [image]
+        lpf_channels = []
+        hpf_channels = []
+
+        for channel in channels:
+            f_transform = np.fft.fft2(channel)
+            f_shifted = np.fft.fftshift(f_transform)
+
+            lpf_mask = gaussian_filter(channel.shape, D0, highpass=False)
+            hpf_mask = gaussian_filter(channel.shape, D0, highpass=True)
+
+            lpf_filtered = np.fft.ifft2(np.fft.ifftshift(f_shifted * lpf_mask)).real
+            hpf_filtered = np.fft.ifft2(np.fft.ifftshift(f_shifted * hpf_mask)).real
+
+            lpf_filtered = cv2.normalize(lpf_filtered, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            hpf_filtered = cv2.normalize(hpf_filtered, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+            lpf_channels.append(lpf_filtered)
+            hpf_channels.append(hpf_filtered)
+
+        lpf_result = cv2.merge(lpf_channels) if len(lpf_channels) == 3 else lpf_channels[0]
+        hpf_result = cv2.merge(hpf_channels) if len(hpf_channels) == 3 else hpf_channels[0]
+        original_display = image if len(image.shape) == 3 else image.copy()
+
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 3, 1)
+        plt.imshow(cv2.cvtColor(original_display, cv2.COLOR_BGR2RGB))
+        plt.title("Original")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(cv2.cvtColor(lpf_result, cv2.COLOR_BGR2RGB) if len(lpf_channels) == 3 else lpf_result, cmap='gray')
+        plt.title("Gaussian LPF")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(cv2.cvtColor(hpf_result, cv2.COLOR_BGR2RGB) if len(hpf_channels) == 3 else hpf_result, cmap='gray')
+        plt.title("Gaussian HPF")
+        plt.axis('off')
+
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close()
+        return buf
+
+    except Exception as e:
+        print(f"Gaussian filter plot error: {str(e)}")
+        raise e
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -1044,7 +1150,15 @@ def process_image(image, operation, value=None):
     elif operation == "butterworth_plot":
         D0, n = map(int, value.split(','))
         return butterworth_plot(image, D0, n)
-    
+    elif operation == "gaussian_lpf":
+        D0 = int(value)
+        return gaussian_lpf(image, D0)
+    elif operation == "gaussian_hpf":
+        D0 = int(value)
+        return gaussian_hpf(image, D0)
+    elif operation == "gaussian_plot":
+        D0 = int(value)
+        return gaussian_plot(image, D0)
 
 
 @app.route("/process", methods=["POST"])
@@ -1655,7 +1769,35 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+    if operation in ["gaussian_lpf", "gaussian_hpf", "gaussian_plot"]:
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get D0 value
+            D0 = int(request.form.get("value", 30))
+            
+            if operation == "gaussian_lpf":
+                processed_img = gaussian_lpf(image, D0)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "gaussian_hpf":
+                processed_img = gaussian_hpf(image, D0)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "gaussian_plot":
+                plot_buffer = gaussian_plot(image, D0)
+                return send_file(plot_buffer, mimetype="image/png")
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+                
     # Rest of your existing process function...
     value = request.form.get("value")
     if value is not None:

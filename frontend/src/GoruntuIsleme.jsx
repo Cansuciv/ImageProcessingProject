@@ -30,6 +30,7 @@
   import FourierTransformFilter from './Processes/FourierTransformFilter.jsx';
   import BandGecirenDurduranFiltre from './Processes/BandGecirenDurduranFiltre.jsx';
   import ButterworthFiltre from './Processes/ButterworthFiltre.jsx';
+  import GaussianFilter from './Processes/GaussianFilter.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -56,6 +57,8 @@
     const [showBandFilterPlot, setShowBandFilterPlot] = useState(false);
     const [showButterworthFilterPlot, setShowButterworthFilterPlot] = useState(false);
     const [butterworthFilterPlotImage, setButterworthFilterPlotImage] = useState(null);
+    const [showGaussianFilterPlot, setShowGaussianFilterPlot] = useState(false);
+    const [gaussianFilterPlotImage, setGaussianFilterPlotImage] = useState(null);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -65,7 +68,7 @@
         // Determine which image to use
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
-          "fourier_filter_plot", "band_gecirendurduran_plot"].includes(operation)
+          "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -172,6 +175,9 @@
         if (operation.includes("butterworth") && value !== null) {
           formData.append("value", value.toString());
         }
+        if (["gaussian_lpf", "gaussian_hpf", "i"].includes(operation) && value !== null) {
+          formData.append("value", value.toString());
+        }
         
     
         let responseType;
@@ -236,6 +242,18 @@
 
           return true;
       } 
+      else if (operation === "gaussian_plot") {
+        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setGaussianFilterPlotImage(imageUrl);
+        setButterworthFilterPlotImage(null);
+        setBandFilterPlotImage(null);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+        setFourierHistogramImage(null);
+      
+        return imageUrl;
+      }
       else {
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setProcessedImage(imageUrl);
@@ -272,8 +290,10 @@ const backToOriginalImage = () => {
   setTempManualContrastImage(null);
   setShowManualInputs(false);
   setShowMultiLinearInputs(false);
-  setShowButterworthFilterPlot(false); // Butterworth grafiğini kapat
-  setButterworthFilterPlotImage(null); // Butterworth grafik resmini temizle
+  setShowButterworthFilterPlot(false); 
+  setButterworthFilterPlotImage(null); 
+  setShowGaussianFilterPlot(false);
+  setGaussianFilterPlotImage(false);
 };
 
 
@@ -419,7 +439,7 @@ const backToOriginalImage = () => {
 
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage) && (
+              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -452,6 +472,12 @@ const backToOriginalImage = () => {
                     <Box>
                       <Typography variant="h6">Butterworth Filtre Grafiği</Typography>
                       <img src={butterworthFilterPlotImage} alt="Butterworth Filtre Grafiği" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {gaussianFilterPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Gaussian Filtre Grafiği</Typography>
+                      <img src={gaussianFilterPlotImage} alt="Gaussian Filtre Grafiği" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   
@@ -586,6 +612,13 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
               setButterworthFilterPlotImage={setButterworthFilterPlotImage}
               setShowButterworthFilterPlot={setShowButterworthFilterPlot}
+            />
+            <GaussianFilter
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setGaussianFilterPlotImage={setGaussianFilterPlotImage}
+              setShowGaussianFilterPlot={setShowGaussianFilterPlot}
             />
 
             {/*
