@@ -95,10 +95,13 @@ const FourierTransformFilter = ({
       case 3: // Grafik
         operation = "fourier_filter_plot";
         value = radius;
-        // İşlenen resmi değiştirmemek için sadece grafiği göster
         try {
           const result = await processImage(operation, value);
-          if (result instanceof Blob) {
+          if (result) {
+            // Önceki görüntüyü temizle
+            if (fourierHistogramImage) {
+              URL.revokeObjectURL(fourierHistogramImage);
+            }
             const imageUrl = URL.createObjectURL(result);
             setFourierHistogramImage(imageUrl);
             setShowFourierPlot(true);
@@ -114,7 +117,6 @@ const FourierTransformFilter = ({
         operation = "fourier_transform";
     }
     
-    // Diğer işlemler için normal akış
     try {
       await processImage(operation, value);
       return true;

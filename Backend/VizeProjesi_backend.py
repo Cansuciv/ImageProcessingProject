@@ -431,280 +431,349 @@ def conservative_smoothing_filter(image):
 
 
 def crimmins_speckle_filter(image, threshold):
-    
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     filtered_image = image.copy()
-    shape = image.shape
-    
-    if len(shape) == 2:  # Gri tonlamalı görüntü
-        rows, cols = shape
-    else:  # Renkli görüntü
-        rows, cols, _ = shape
+    rows, cols, channels = image.shape
 
-    for i in range(1, rows-1):
-        for j in range(1, cols-1):
-            center_pixel = image[i, j]
-            neighbors = [image[i-1, j], image[i+1, j], image[i, j-1], image[i, j+1]]
-            avg_neighbors = np.mean(neighbors)
+    for c in range(channels):  # Her bir renk kanalı için
+        for i in range(1, rows-1):
+            for j in range(1, cols-1):
+                center_pixel = image[i, j, c]
+                neighbors = [
+                    image[i-1, j, c],
+                    image[i+1, j, c],
+                    image[i, j-1, c],
+                    image[i, j+1, c]
+                ]
+                avg_neighbors = np.mean(neighbors)
 
-            if center_pixel > avg_neighbors + threshold:
-                filtered_image[i, j] = avg_neighbors
-            elif center_pixel < avg_neighbors - threshold:
-                filtered_image[i, j] = avg_neighbors
+                if center_pixel > avg_neighbors + threshold:
+                    filtered_image[i, j, c] = avg_neighbors
+                elif center_pixel < avg_neighbors - threshold:
+                    filtered_image[i, j, c] = avg_neighbors
+
     cv2.imshow("crimmins_speckle_filter", filtered_image)
     return filtered_image
 
-
 # Fourier transform LPF HPF - DÜZENLENMİŞ VERSİYON
 def fourier_transform(image):
-    # Görüntüyü gri tonlamalı yap (renkli ise)
+    # Renkli görüntüyü BGR kanallarına ayır
     if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        channels = cv2.split(image)
+    else:
+        channels = [image]
     
-    # Fourier dönüşümü uygula
-    f_transform = np.fft.fft2(image)
-    f_transform_shifted = np.fft.fftshift(f_transform)  # Düşük frekansları merkeze getir
+    f_transforms = []
+    magnitude_spectrums = []
     
-    # Magnitude spektrumunu hesapla (log scale)
-    magnitude_spectrum = np.log(np.abs(f_transform_shifted))  # +1 ile log(0) hatasını önle
+    for ch in channels:
+        # Fourier dönüşümü uygula
+        f_transform = np.fft.fft2(ch)
+        f_transform_shifted = np.fft.fftshift(f_transform)
+        
+        # Magnitude spektrumunu hesapla (log scale)
+        magnitude_spectrum = np.log(np.abs(f_transform_shifted) + 1)
+        magnitude_spectrum_normalized = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        
+        f_transforms.append(f_transform_shifted)
+        magnitude_spectrums.append(magnitude_spectrum_normalized)
     
-    # Görselleştirme için normalize et
-    magnitude_spectrum_normalized = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    # Renkli görüntü için kanalları birleştir
+    if len(image.shape) == 3:
+        magnitude_spectrum_color = cv2.merge(magnitude_spectrums)
+    else:
+        magnitude_spectrum_color = magnitude_spectrums[0]
     
-    # Magnitude spektrumunu geçici olarak kaydet
+    # Magnitude spektrumunu kaydet
     spectrum_path = os.path.join(PROCESSED_FOLDER, "temp_spectrum.png")
-    cv2.imwrite(spectrum_path, magnitude_spectrum_normalized)
+    cv2.imwrite(spectrum_path, magnitude_spectrum_color)
     
-    return f_transform_shifted, spectrum_path
+    return f_transforms, spectrum_path
 
-def fourier_low_pass_filter(f_transform_shifted, radius):
-    rows, cols = f_transform_shifted.shape
-    mask = np.zeros((rows, cols), np.uint8)
-    center = (cols//2, rows//2)
-    cv2.circle(mask, center, radius, 1, -1)
+def fourier_low_pass_filter(f_transforms, radius):
+    filtered_channels = []
     
-    # Filtreyi uygula
-    filtered = f_transform_shifted * mask
+    for f_transform_shifted in f_transforms:
+        rows, cols = f_transform_shifted.shape
+        mask = np.zeros((rows, cols), np.uint8)
+        center = (cols//2, rows//2)
+        cv2.circle(mask, center, radius, 1, -1)
+        
+        # Filtreyi uygula
+        filtered = f_transform_shifted * mask
+        
+        # Ters Fourier dönüşümü
+        filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        filtered_channels.append(filtered_image)
     
-    # Ters Fourier dönüşümü
-    filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+    # Renkli görüntü için kanalları birleştir
+    if len(filtered_channels) > 1:
+        filtered_image_color = cv2.merge([
+            cv2.normalize(ch, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) 
+            for ch in filtered_channels
+        ])
+    else:
+        filtered_image_color = cv2.normalize(filtered_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     
-    # Normalize et ve kaydet
-    filtered_image = cv2.normalize(filtered_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     filtered_path = os.path.join(PROCESSED_FOLDER, "temp_lpf.png")
-    cv2.imwrite(filtered_path, filtered_image)
+    cv2.imwrite(filtered_path, filtered_image_color)
     
     return filtered_path
 
-def fourier_high_pass_filter(f_transform_shifted, radius):
-    rows, cols = f_transform_shifted.shape
-    mask = np.ones((rows, cols), np.uint8)
-    center = (cols//2, rows//2)
-    cv2.circle(mask, center, radius, 0, -1)
+def fourier_high_pass_filter(f_transforms, radius):
+    filtered_channels = []
     
-    # Filtreyi uygula
-    filtered = f_transform_shifted * mask
+    for f_transform_shifted in f_transforms:
+        rows, cols = f_transform_shifted.shape
+        mask = np.ones((rows, cols), np.uint8)
+        center = (cols//2, rows//2)
+        cv2.circle(mask, center, radius, 0, -1)
+        
+        # Filtreyi uygula
+        filtered = f_transform_shifted * mask
+        
+        # Ters Fourier dönüşümü
+        filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        filtered_channels.append(filtered_image)
     
-    # Ters Fourier dönüşümü
-    filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+    # Renkli görüntü için kanalları birleştir
+    if len(filtered_channels) > 1:
+        filtered_image_color = cv2.merge([
+            cv2.normalize(ch, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) 
+            for ch in filtered_channels
+        ])
+    else:
+        filtered_image_color = cv2.normalize(filtered_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     
-    # Normalize et ve kaydet
-    filtered_image = cv2.normalize(filtered_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     filtered_path = os.path.join(PROCESSED_FOLDER, "temp_hpf.png")
-    cv2.imwrite(filtered_path, filtered_image)
+    cv2.imwrite(filtered_path, filtered_image_color)
     
     return filtered_path
 
 def fourier_filter_plot(image, radius):
     try:
-        # Convert to grayscale if needed
-        if len(image.shape) == 3:
-            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        is_color = len(image.shape) == 3
+        channels = cv2.split(image) if is_color else [image]
+
+        lpf_channels = []
+        hpf_channels = []
+        spectrum_channels = []
+
+        for ch in channels:
+            f_transform = np.fft.fft2(ch)
+            f_transform_shifted = np.fft.fftshift(f_transform)
+
+            magnitude = 20 * np.log(np.abs(f_transform_shifted) + 1)
+            spectrum_channels.append(magnitude)
+
+            rows, cols = ch.shape
+            center = (cols // 2, rows // 2)
+
+            mask_lpf = np.zeros((rows, cols), np.float32)
+            cv2.circle(mask_lpf, center, int(radius), 1, -1)
+
+            mask_hpf = np.ones((rows, cols), np.float32)
+            cv2.circle(mask_hpf, center, int(radius), 0, -1)
+
+            filtered_lpf = f_transform_shifted * mask_lpf
+            lpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_lpf)).real
+
+            filtered_hpf = f_transform_shifted * mask_hpf
+            hpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_hpf)).real
+
+            lpf_channels.append(lpf_result)
+            hpf_channels.append(hpf_result)
+
+        if is_color:
+            lpf_image = cv2.merge([cv2.normalize(c, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) for c in lpf_channels])
+            hpf_image = cv2.merge([cv2.normalize(c, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) for c in hpf_channels])
+            magnitude_spectrum = cv2.merge([
+                cv2.normalize(c, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) for c in spectrum_channels
+            ])
         else:
-            image_gray = image.copy()
-        
-        # Perform Fourier transform
-        f_transform = np.fft.fft2(image_gray)
-        f_transform_shifted = np.fft.fftshift(f_transform)
+            lpf_image = cv2.normalize(lpf_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            hpf_image = cv2.normalize(hpf_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            magnitude_spectrum = cv2.normalize(spectrum_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
-        # Magnitude spectrum (log scale)
-        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted))
-
-        # Create filters
-        rows, cols = image_gray.shape
-        center = (cols // 2, rows // 2)
-
-        # LPF mask
-        mask_lpf = np.zeros((rows, cols), np.uint8)
-        cv2.circle(mask_lpf, center, radius, 1, -1)
-
-        # HPF mask
-        mask_hpf = np.ones((rows, cols), np.uint8)
-        cv2.circle(mask_hpf, center, radius, 0, -1)
-
-        # Apply LPF
-        filtered_lpf = f_transform_shifted * mask_lpf
-        lpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_lpf)).real
-
-        # Apply HPF
-        filtered_hpf = f_transform_shifted * mask_hpf
-        hpf_result = np.fft.ifft2(np.fft.ifftshift(filtered_hpf)).real
-
-        # Create plot
         plt.figure(figsize=(12, 6))
 
         # Original Image
         plt.subplot(1, 4, 1)
-        plt.imshow(image_gray, cmap='gray')
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if is_color else image, cmap='gray')
         plt.title("Original Image")
         plt.axis('off')
 
-        # Fourier Spectrum
+        # Spectrum
         plt.subplot(1, 4, 2)
-        plt.imshow(magnitude_spectrum, cmap='gray')
+        plt.imshow(cv2.cvtColor(magnitude_spectrum, cv2.COLOR_BGR2RGB) if is_color else magnitude_spectrum, cmap='gray')
         plt.title("Fourier Spectrum")
         plt.axis('off')
 
-        # LPF Result
+        # LPF
         plt.subplot(1, 4, 3)
-        plt.imshow(lpf_result, cmap='gray')
-        plt.title("LPF")
+        plt.imshow(cv2.cvtColor(lpf_image, cv2.COLOR_BGR2RGB) if is_color else lpf_image, cmap='gray')
+        plt.title(f"LPF (R={radius})")
         plt.axis('off')
 
-        # HPF Result
+        # HPF
         plt.subplot(1, 4, 4)
-        plt.imshow(hpf_result, cmap='gray')
-        plt.title("HPF")
+        plt.imshow(cv2.cvtColor(hpf_image, cv2.COLOR_BGR2RGB) if is_color else hpf_image, cmap='gray')
+        plt.title(f"HPF (R={radius})")
         plt.axis('off')
 
         plt.tight_layout()
-
-        # Save plot to buffer
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
         plt.close()
-        
+
         return buf
 
     except Exception as e:
         print(f"Fourier filter plot error: {str(e)}")
         raise e
 
-def band_geciren_filtre(f_transform_shifted, D1, D2):
-    rows, cols = f_transform_shifted.shape
-    mask = np.zeros((rows, cols), np.uint8)
-    center = (cols // 2, rows // 2)
+def band_geciren_filtre(image, D1, D2):
+    """Renkli görüntüler için band geçiren filtre"""
+    if len(image.shape) == 3:
+        channels = cv2.split(image)
+    else:
+        channels = [image]
+    
+    filtered_channels = []
+    
+    for ch in channels:
+        # Fourier dönüşümü
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+        
+        # Maske oluştur
+        rows, cols = ch.shape
+        center = (cols//2, rows//2)
+        mask = np.zeros((rows, cols), np.uint8)
+        
+        for u in range(rows):
+            for v in range(cols):
+                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+                if D1 <= D <= D2:
+                    mask[u, v] = 1
+        
+        # Filtre uygula
+        filtered = f_shifted * mask
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        filtered_channels.append(img_back)
+    
+    # Kanalları birleştir
+    if len(filtered_channels) > 1:
+        filtered_image = cv2.merge([
+            cv2.normalize(ch, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) 
+            for ch in filtered_channels
+        ])
+    else:
+        filtered_image = cv2.normalize(filtered_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    
+    return filtered_image
 
-    for u in range(rows):
-        for v in range(cols):
-            D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
-            if D1 <= D <= D2:
-                mask[u, v] = 1
-
-    filtered = f_transform_shifted * mask
-    filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
-
-    # Normalize
-    filtered_image_normalized = (cv2.normalize(filtered_image, None, 0, 1.0, cv2.NORM_MINMAX) * 255).astype(np.uint8)
-    cv2.imshow("band_geciren_filtre", filtered_image_normalized)
-    return filtered_image_normalized
-
-
-def band_durduran_filtre(f_transform_shifted, D1, D2):
-    rows, cols = f_transform_shifted.shape
-    mask = np.ones((rows, cols), np.uint8)
-    center = (cols // 2, rows // 2)
-
-    for u in range(rows):
-        for v in range(cols):
-            D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
-            if D1 <= D <= D2:
-                mask[u, v] = 0
-
-    filtered = f_transform_shifted * mask
-    filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
-
-    # Normalize
-    filtered_image_normalized = (cv2.normalize(filtered_image, None, 0, 1.0, cv2.NORM_MINMAX) * 255).astype(np.uint8)
-    cv2.imshow("band_durduran_filtre", filtered_image_normalized)
-    return filtered_image_normalized
-
+def band_durduran_filtre(image, D1, D2):
+    """Renkli görüntüler için band durduran filtre"""
+    if len(image.shape) == 3:
+        channels = cv2.split(image)
+    else:
+        channels = [image]
+    
+    filtered_channels = []
+    
+    for ch in channels:
+        # Fourier dönüşümü
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+        
+        # Maske oluştur
+        rows, cols = ch.shape
+        center = (cols//2, rows//2)
+        mask = np.ones((rows, cols), np.uint8)
+        
+        for u in range(rows):
+            for v in range(cols):
+                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+                if D1 <= D <= D2:
+                    mask[u, v] = 0
+        
+        # Filtre uygula
+        filtered = f_shifted * mask
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        filtered_channels.append(img_back)
+    
+    # Kanalları birleştir
+    if len(filtered_channels) > 1:
+        filtered_image = cv2.merge([
+            cv2.normalize(ch, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) 
+            for ch in filtered_channels
+        ])
+    else:
+        filtered_image = cv2.normalize(filtered_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    
+    return filtered_image
 
 def band_gecirendurduran_plot(image, D1, D2):
+    """Band geçiren ve durduran filtrelerin karşılaştırmalı görseli"""
     try:
-        # Convert image to grayscale if needed
-        if len(image.shape) == 3:
-            image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        is_color = len(image.shape) == 3
+        channels = cv2.split(image) if is_color else [image]
+        
+        # Fourier dönüşümleri ve spektrumlar
+        f_transforms = []
+        magnitude_spectrums = []
+        
+        for ch in channels:
+            f_transform = np.fft.fft2(ch)
+            f_shifted = np.fft.fftshift(f_transform)
+            magnitude = 20 * np.log(np.abs(f_shifted) + 1)
+            f_transforms.append(f_shifted)
+            magnitude_spectrums.append(magnitude)
+        
+        # Spektrum görüntüsü
+        if is_color:
+            magnitude_spectrum = cv2.merge([
+                cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8) 
+                for mag in magnitude_spectrums
+            ])
         else:
-            image_gray = image.copy()
+            magnitude_spectrum = cv2.normalize(magnitude_spectrums[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         
-        # Perform Fourier transform
-        f_transform = np.fft.fft2(image_gray)
-        f_transform_shifted = np.fft.fftshift(f_transform)
+        # Band geçiren ve durduran filtre sonuçları
+        band_pass_result = band_geciren_filtre(image, D1, D2)
+        band_stop_result = band_durduran_filtre(image, D1, D2)
         
-        # Calculate magnitude spectrum (log scale)
-        magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted))
-        
-        # Create band pass and band stop filters
-        rows, cols = image_gray.shape
-        center = (cols//2, rows//2)
-        
-        # Band pass filter
-        mask_band_pass = np.zeros((rows, cols), np.uint8)
-        for u in range(rows):
-            for v in range(cols):
-                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
-                if D1 <= D <= D2:
-                    mask_band_pass[u, v] = 1
-        
-        # Band stop filter
-        mask_band_stop = np.ones((rows, cols), np.uint8)
-        for u in range(rows):
-            for v in range(cols):
-                D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
-                if D1 <= D <= D2:
-                    mask_band_stop[u, v] = 0
-        
-        # Apply filters
-        band_pass_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_band_pass)).real
-        band_stop_result = np.fft.ifft2(np.fft.ifftshift(f_transform_shifted * mask_band_stop)).real
-        
-        # Normalize results
-        band_pass_result = cv2.normalize(band_pass_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        band_stop_result = cv2.normalize(band_stop_result, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        magnitude_spectrum = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        
-        # Create plot
+        # Plot oluştur
         plt.figure(figsize=(12, 6))
         
-        # Original Image
+        # Orijinal görüntü
         plt.subplot(1, 4, 1)
-        plt.imshow(image_gray, cmap='gray')
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if is_color else image, cmap='gray')
         plt.title("Original Image")
         plt.axis('off')
         
-        # Fourier Magnitude Spectrum
+        # Fourier spektrumu
         plt.subplot(1, 4, 2)
-        plt.imshow(magnitude_spectrum, cmap='gray')
+        plt.imshow(cv2.cvtColor(magnitude_spectrum, cv2.COLOR_BGR2RGB) if is_color else magnitude_spectrum, cmap='gray')
         plt.title("Fourier Spectrum")
         plt.axis('off')
         
-        # Band Pass Filter Result
+        # Band geçiren sonuç
         plt.subplot(1, 4, 3)
-        plt.imshow(band_pass_result, cmap='gray')
-        plt.title(f"Band Pass")
+        plt.imshow(cv2.cvtColor(band_pass_result, cv2.COLOR_BGR2RGB) if is_color else band_pass_result, cmap='gray')
+        plt.title(f"Band Pass ({D1}-{D2})")
         plt.axis('off')
         
-        # Band Stop Filter Result
+        # Band durduran sonuç
         plt.subplot(1, 4, 4)
-        plt.imshow(band_stop_result, cmap='gray')
-        plt.title(f"Band Stop")
+        plt.imshow(cv2.cvtColor(band_stop_result, cv2.COLOR_BGR2RGB) if is_color else band_stop_result, cmap='gray')
+        plt.title(f"Band Stop ({D1}-{D2})")
         plt.axis('off')
         
         plt.tight_layout()
         
-        # Save plot to buffer
+        # Plot'u belleğe kaydet
         buf = io.BytesIO()
         plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
         buf.seek(0)
@@ -716,6 +785,152 @@ def band_gecirendurduran_plot(image, D1, D2):
         print(f"Band filter plot error: {str(e)}")
         raise e
 
+
+def butterworth_filter(image_shape, D0, n, highpass=False):
+    rows, cols = image_shape[:2]  # Renkli görüntü için ilk iki boyutu al
+    mask = np.zeros((rows, cols), np.float32)
+    center = (cols // 2, rows // 2)
+
+    for u in range(rows):
+        for v in range(cols):
+            D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+            if highpass:
+                H = 1 - (1 / (1 + (D / D0)**(2 * n)))
+            else:
+                H = 1 / (1 + (D / D0)**(2 * n))
+            mask[u, v] = H
+
+    return mask
+
+def butterworth_lpf(image, D0, n):
+    if len(image.shape) == 3:
+        channels = cv2.split(image)
+    else:
+        channels = [image]
+    
+    filtered_channels = []
+    
+    for ch in channels:
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+        
+        mask = butterworth_filter(ch.shape, D0, n, highpass=False)
+        filtered = f_shifted * mask
+        
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+        img_back = cv2.normalize(img_back, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+        filtered_channels.append(img_back)
+        
+    
+    
+    if len(filtered_channels) > 1:
+        result = cv2.merge(filtered_channels)
+    else:
+        result = filtered_channels[0]
+    
+    cv2.imshow("Butterworth LPF", result)
+    return result
+
+
+def butterworth_hpf(image, D0, n):
+    if len(image.shape) == 3:
+        channels = cv2.split(image)
+    else:
+        channels = [image]
+    
+    filtered_channels = []
+
+    for ch in channels:
+        f_transform = np.fft.fft2(ch)
+        f_shifted = np.fft.fftshift(f_transform)
+
+        mask = butterworth_filter(ch.shape, D0, n, highpass=True)
+        filtered = f_shifted * mask
+
+        img_back = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+
+        img_back = cv2.normalize(img_back, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+        filtered_channels.append(img_back)
+
+    if len(filtered_channels) > 1:
+        result = cv2.merge(filtered_channels)
+    else:
+        result = filtered_channels[0]
+
+    # Bu satırı yoruma alabilirsiniz çünkü dışarıda gösterim yapıyorsunuz
+    cv2.imshow("Butterworth HPF", result)
+    return result
+
+
+
+def butterworth_plot(image, D0, n):
+    try:
+        # Eğer görüntü gri ise, tek kanal listele
+        if len(image.shape) == 2 or image.shape[2] == 1:
+            channels = [image]
+        else:
+            # Renkli ise kanallara ayır (BGR)
+            channels = cv2.split(image)
+
+        lpf_channels = []
+        hpf_channels = []
+
+        for channel in channels:
+            # Fourier dönüşümü
+            f_transform = np.fft.fft2(channel)
+            f_shifted = np.fft.fftshift(f_transform)
+
+            # Filtreleri oluştur
+            lpf_mask = butterworth_filter(channel.shape, D0, n, highpass=False)
+            hpf_mask = butterworth_filter(channel.shape, D0, n, highpass=True)
+
+            # Filtreleri uygula
+            lpf_filtered = np.fft.ifft2(np.fft.ifftshift(f_shifted * lpf_mask)).real
+            hpf_filtered = np.fft.ifft2(np.fft.ifftshift(f_shifted * hpf_mask)).real
+
+            # Normalize
+            lpf_filtered = cv2.normalize(lpf_filtered, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+            hpf_filtered = cv2.normalize(hpf_filtered, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+            lpf_channels.append(lpf_filtered)
+            hpf_channels.append(hpf_filtered)
+
+        # Renkli görüntüler oluştur
+        lpf_result = cv2.merge(lpf_channels) if len(lpf_channels) == 3 else lpf_channels[0]
+        hpf_result = cv2.merge(hpf_channels) if len(hpf_channels) == 3 else hpf_channels[0]
+        original_display = image if len(image.shape) == 3 else image.copy()
+
+        # Plot
+        plt.figure(figsize=(12, 6))
+        plt.subplot(1, 3, 1)
+        plt.imshow(cv2.cvtColor(original_display, cv2.COLOR_BGR2RGB))
+        plt.title("Original")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(cv2.cvtColor(lpf_result, cv2.COLOR_BGR2RGB) if len(lpf_channels) == 3 else lpf_result, cmap='gray')
+        plt.title("Butterworth LPF")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(cv2.cvtColor(hpf_result, cv2.COLOR_BGR2RGB) if len(hpf_channels) == 3 else hpf_result, cmap='gray')
+        plt.title("Butterworth HPF")
+        plt.axis('off')
+
+        plt.tight_layout()
+
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close()
+        
+        return buf
+
+    except Exception as e:
+        print(f"Butterworth filter plot error: {str(e)}")
+        raise e
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -805,7 +1020,6 @@ def process_image(image, operation, value=None):
     elif operation == "fourier_filter_plot" and value is not None:
         f_transform_shifted, _ = fourier_transform(image)
         return fourier_filter_plot(f_transform_shifted, value)
-    # Add these to the process_image function
     elif operation == "band_geciren_filtre" and value is not None:
         D1, D2 = map(int, value.split(','))
         f_transform_shifted, _ = fourier_transform(image)
@@ -821,6 +1035,15 @@ def process_image(image, operation, value=None):
         band_pass = band_geciren_filtre(f_transform_shifted, D1, D2)
         band_stop = band_durduran_filtre(f_transform_shifted, D1, D2)
         return band_gecirendurduran_plot(image, magnitude_spectrum, band_pass, band_stop)
+    elif operation == "butterworth_lpf":
+        D0, n = map(int, value.split(','))
+        return butterworth_lpf(image, D0, n)
+    elif operation == "butterworth_hpf":
+        D0, n = map(int, value.split(','))
+        return butterworth_hpf(image, D0, n)
+    elif operation == "butterworth_plot":
+        D0, n = map(int, value.split(','))
+        return butterworth_plot(image, D0, n)
     
 
 
@@ -1285,7 +1508,7 @@ def process():
     # Handle Fourier operations
     if operation in ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter"]:
         try:
-            # Read image
+            # Resmi oku
             img_bytes = file.read()
             nparr = np.frombuffer(img_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -1293,66 +1516,28 @@ def process():
             if image is None:
                 return jsonify({"error": "Invalid image"}), 400
             
-            # Convert to grayscale if needed
-            if len(image.shape) == 3:
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            
-            # Perform Fourier transform
-            f_transform = np.fft.fft2(image)
-            f_transform_shifted = np.fft.fftshift(f_transform)
+            # Fourier dönüşümünü uygula (artık renkli destekliyor)
+            f_transforms, spectrum_path = fourier_transform(image)
             
             if operation == "fourier_transform":
-                # Calculate magnitude spectrum (log scale)
-                magnitude_spectrum = 20 * np.log(np.abs(f_transform_shifted) + 1)
-                magnitude_spectrum = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-                
-                # Convert to 3-channel for consistency
-                if len(magnitude_spectrum.shape) == 2:
-                    magnitude_spectrum = cv2.cvtColor(magnitude_spectrum, cv2.COLOR_GRAY2BGR)
-                
-                # Encode and return
-                _, img_buffer = cv2.imencode('.jpg', magnitude_spectrum)
-                return send_file(
-                    io.BytesIO(img_buffer.tobytes()),
-                    mimetype="image/jpeg"
-                )
+                # Spektrum görüntüsünü döndür
+                return send_file(spectrum_path, mimetype="image/png")
                 
             elif operation in ["fourier_low_pass_filter", "fourier_high_pass_filter"]:
-                # Get radius parameter
+                # Yarıçap parametresini al
                 radius = int(request.form.get("value", 30))
                 
-                # Create filter mask
-                rows, cols = image.shape
-                center = (cols//2, rows//2)
-                
+                # Filtreyi uygula
                 if operation == "fourier_low_pass_filter":
-                    mask = np.zeros((rows, cols), np.uint8)
-                    cv2.circle(mask, center, radius, 1, -1)
-                else:  # high pass filter
-                    mask = np.ones((rows, cols), np.uint8)
-                    cv2.circle(mask, center, radius, 0, -1)
+                    filtered_path = fourier_low_pass_filter(f_transforms, radius)
+                else:
+                    filtered_path = fourier_high_pass_filter(f_transforms, radius)
                 
-                # Apply filter
-                filtered = f_transform_shifted * mask
+                # Filtrelenmiş görüntüyü döndür
+                return send_file(filtered_path, mimetype="image/png")
                 
-                # Inverse transform
-                filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
-                filtered_image = cv2.normalize(filtered_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-                
-                # Convert to 3-channel if needed
-                if len(filtered_image.shape) == 2:
-                    filtered_image = cv2.cvtColor(filtered_image, cv2.COLOR_GRAY2BGR)
-                
-                # Encode and return
-                _, img_buffer = cv2.imencode('.jpg', filtered_image)
-                return send_file(
-                    io.BytesIO(img_buffer.tobytes()),
-                    mimetype="image/jpeg"
-                )
-                
-
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": str(e)}), 50
         
     # Handle Fourier operations
     if operation == "fourier_filter_plot":
@@ -1382,9 +1567,9 @@ def process():
                     
 
     # Add this to the /process route, before the "Rest of your existing process function..." part
-    if operation in ["band_geciren_filtre", "band_durduran_filtre"]:
+    if operation in ["band_geciren_filtre", "band_durduran_filtre", "band_gecirendurduran_plot"]:
         try:
-            # Read image
+            # Resmi oku
             img_bytes = file.read()
             nparr = np.frombuffer(img_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -1392,48 +1577,25 @@ def process():
             if image is None:
                 return jsonify({"error": "Invalid image"}), 400
             
-            # Get D1 and D2 values
-            value = request.form.get("value", "10,30")
+            # Parametreleri al
+            value = request.form.get("value", "20,50")
             D1, D2 = map(int, value.split(','))
             
-            # Convert to grayscale if needed
-            if len(image.shape) == 3:
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            
-            # Perform Fourier transform
-            f_transform = np.fft.fft2(image)
-            f_transform_shifted = np.fft.fftshift(f_transform)
-            
             if operation == "band_geciren_filtre":
-                # Band pass filter
-                filtered_image = band_geciren_filtre(f_transform_shifted, D1, D2)
-                
-                # Convert to 3-channel if needed
-                if len(filtered_image.shape) == 2:
-                    filtered_image = cv2.cvtColor(filtered_image, cv2.COLOR_GRAY2BGR)
-                
-                # Encode and return
-                _, img_buffer = cv2.imencode('.jpg', filtered_image)
-                return send_file(
-                    io.BytesIO(img_buffer.tobytes()),
-                    mimetype="image/jpeg"
-                )
-                
+                processed_img = band_geciren_filtre(image, D1, D2)
             elif operation == "band_durduran_filtre":
-                # Band stop filter
-                filtered_image = band_durduran_filtre(f_transform_shifted, D1, D2)
-                
-                # Convert to 3-channel if needed
-                if len(filtered_image.shape) == 2:
-                    filtered_image = cv2.cvtColor(filtered_image, cv2.COLOR_GRAY2BGR)
-                
-                # Encode and return
-                _, img_buffer = cv2.imencode('.jpg', filtered_image)
-                return send_file(
-                    io.BytesIO(img_buffer.tobytes()),
-                    mimetype="image/jpeg"
-                )
-                
+                processed_img = band_durduran_filtre(image, D1, D2)
+            elif operation == "band_gecirendurduran_plot":
+                plot_buffer = band_gecirendurduran_plot(image, D1, D2)
+                return send_file(plot_buffer, mimetype="image/png")
+            
+            # Görüntüyü döndür
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
@@ -1461,8 +1623,38 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-
-    
+        
+    if operation in ["butterworth_lpf", "butterworth_hpf", "butterworth_plot"]:
+        try:
+            # Resmi oku
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Parametreleri al
+            value = request.form.get("value", "30,2")
+            D0, n = map(float, value.split(','))
+            
+            if operation == "butterworth_lpf":
+                processed_img = butterworth_lpf(image, D0, n)
+            elif operation == "butterworth_hpf":
+                processed_img = butterworth_hpf(image, D0, n)
+            elif operation == "butterworth_plot":
+                plot_buffer = butterworth_plot(image, D0, n)
+                return send_file(plot_buffer, mimetype="image/png")
+            
+            # Görüntüyü döndür
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
             
     # Rest of your existing process function...
     value = request.form.get("value")

@@ -13,23 +13,22 @@ import TextField from '@mui/material/TextField';
 import Collapse from '@mui/material/Collapse';
 import Typography from "@mui/material/Typography";
 
-const bandOptions = ["Band Geçiren", "Band Durduran", "Band Grafik"];
+const butterworthOptions = ["Butterworth LPF", "Butterworth HPF", "Butterworth Grafik"];
 
-const BandGecirenDurduranFiltre = ({ 
+const ButterworthFiltre = ({ 
   processImage, 
   processedImage, 
-  originalImage, 
-  setBandFilterPlotImage,
-  setShowBandFilterPlot // Yeni prop
+  originalImage,
+  setButterworthFilterPlotImage,
+  setShowButterworthFilterPlot
 }) => {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showInputs, setShowInputs] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [D1, setD1] = useState(20);
-  const [D2, setD2] = useState(50);
-  const [plotImage, setPlotImage] = useState(null);
+  const [D0, setD0] = useState(30);
+  const [n, setN] = useState(2);
 
   const handleToggle = () => {
     setOpen((prevOpen) => !prevOpen);
@@ -42,7 +41,7 @@ const BandGecirenDurduranFiltre = ({
     setOpen(false);
   };
 
-  const handleBandClick = () => {
+  const handleButterworthClick = () => {
     if (selectedIndex === null) {
       setSelectedIndex(0);
     }
@@ -55,12 +54,12 @@ const BandGecirenDurduranFiltre = ({
     setShowInputs(true);
   };
 
-  const handleD1Change = (event) => {
-    setD1(parseInt(event.target.value) || 20);
+  const handleD0Change = (event) => {
+    setD0(parseInt(event.target.value) || 30);
   };
 
-  const handleD2Change = (event) => {
-    setD2(parseInt(event.target.value) || 50);
+  const handleNChange = (event) => {
+    setN(parseInt(event.target.value) || 2);
   };
 
   const handleApply = async () => {
@@ -71,40 +70,28 @@ const BandGecirenDurduranFiltre = ({
   
     setIsProcessing(true);
     let operation;
-    let value = `${D1},${D2}`;
+    let value = `${D0},${n}`;
   
     try {
       switch (selectedIndex) {
-        case 0: // Band Geçiren
-          operation = "band_geciren_filtre";
-          const result1 = await processImage(operation, value);
-          if (result1) {
-            setBandFilterPlotImage(null);
-            setShowBandFilterPlot(false);
-          }
-          return result1;
-        case 1: // Band Durduran
-          operation = "band_durduran_filtre";
-          const result2 = await processImage(operation, value);
-          if (result2) {
-            setBandFilterPlotImage(null);
-            setShowBandFilterPlot(false);
-          }
-          return result2;
-        case 2: // Grafik
-          operation = "band_gecirendurduran_plot";
-          const plotResult = await processImage(operation, value);
-          if (plotResult instanceof Blob) {
-            const imageUrl = URL.createObjectURL(plotResult);
-            setBandFilterPlotImage(imageUrl);
-            setShowBandFilterPlot(true);
-          }
-          return true;
+        case 0: // Butterworth LPF
+          operation = "butterworth_lpf";
+          await processImage(operation, value);
+          break;
+        case 1: // Butterworth HPF
+          operation = "butterworth_hpf";
+          await processImage(operation, value);
+          break;
+        case 2: // Butterworth Grafik
+          operation = "butterworth_plot";
+          await processImage(operation, value);
+          break;
         default:
           return false;
       }
+      return true;
     } catch (error) {
-      console.error("Band filter error:", error);
+      console.error("Butterworth filter error:", error);
       return false;
     } finally {
       setIsProcessing(false);
@@ -130,15 +117,6 @@ const BandGecirenDurduranFiltre = ({
     }
   }, [showInputs]);
 
-  // Clean up object URLs when component unmounts
-  useEffect(() => {
-    return () => {
-      if (plotImage) {
-        URL.revokeObjectURL(plotImage);
-      }
-    };
-  }, [plotImage]);
-
   return (
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <ButtonGroup
@@ -155,10 +133,10 @@ const BandGecirenDurduranFiltre = ({
           }}
           onClick={(e) => {
             e.stopPropagation();
-            handleBandClick();
+            handleButterworthClick();
           }}
         >
-          {bandOptions[selectedIndex]}
+          {butterworthOptions[selectedIndex]}
         </Button>
 
         <Button
@@ -207,7 +185,7 @@ const BandGecirenDurduranFiltre = ({
                   autoFocusItem
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {bandOptions.map((option, index) => (
+                  {butterworthOptions.map((option, index) => (
                     <MenuItem
                       key={option}
                       selected={index === selectedIndex}
@@ -257,23 +235,23 @@ const BandGecirenDurduranFiltre = ({
             autoComplete="off"
           >
             <TextField
-              id="D1"
-              label="D1 Değeri"
+              id="D0"
+              label="D0 Değeri"
               variant="outlined"
-              value={D1}
-              onChange={handleD1Change}
+              value={D0}
+              onChange={handleD0Change}
               type="number"
               inputProps={{ min: 1, max: 100 }}
               sx={{ width: '100%' }}
             />
             <TextField
-              id="D2"
-              label="D2 Değeri"
+              id="n"
+              label="n Değeri (Derece)"
               variant="outlined"
-              value={D2}
-              onChange={handleD2Change}
+              value={n}
+              onChange={handleNChange}
               type="number"
-              inputProps={{ min: 1, max: 100 }}
+              inputProps={{ min: 1, max: 10 }}
               sx={{ width: '100%', mt: 2 }}
             />
             <Button
@@ -290,7 +268,7 @@ const BandGecirenDurduranFiltre = ({
                 width: '100%',
               }}
             >
-              Uygula {bandOptions[selectedIndex]}
+              Uygula {butterworthOptions[selectedIndex]}
             </Button>
           </Box>
         </Collapse>
@@ -299,5 +277,4 @@ const BandGecirenDurduranFiltre = ({
   );
 };
 
-
-export default BandGecirenDurduranFiltre;
+export default ButterworthFiltre;

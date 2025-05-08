@@ -29,7 +29,7 @@
   import CrimminsSpeckleFilter from './Processes/CrimminsSpeckleFilter.jsx';
   import FourierTransformFilter from './Processes/FourierTransformFilter.jsx';
   import BandGecirenDurduranFiltre from './Processes/BandGecirenDurduranFiltre.jsx';
-
+  import ButterworthFiltre from './Processes/ButterworthFiltre.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -54,6 +54,8 @@
     const [showFourierPlot, setShowFourierPlot] = useState(false);
     const [bandFilterPlotImage, setBandFilterPlotImage] = useState(null);
     const [showBandFilterPlot, setShowBandFilterPlot] = useState(false);
+    const [showButterworthFilterPlot, setShowButterworthFilterPlot] = useState(false);
+    const [butterworthFilterPlotImage, setButterworthFilterPlotImage] = useState(null);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -63,19 +65,19 @@
         // Determine which image to use
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
-          ].includes(operation)
+          "fourier_filter_plot", "band_gecirendurduran_plot"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
                 "crimmins_speckle_filter"].includes(operation)
                 ? (baseImage || originalImage)
                 : (processedImage || originalImage));
-    
+
         if (!imageToUse) {
           console.error("No image available for processing");
           return false;
         }
-    
+        
         // Get image as blob
         const response = await fetch(imageToUse);
         const blob = await response.blob();
@@ -159,15 +161,26 @@
         if (["fourier_low_pass_filter", "fourier_high_pass_filter"].includes(operation) && value !== null) {
           formData.append("value", value.toString());
         }
+        if (operation === "fourier_filter_plot" && value !== null) {
+          formData.append("value", value.toString()); // Radius değerini string olarak ekle
+        }
+        if (["band_geciren_filtre", "band_durduran_filtre", "band_gecirendurduran_plot"].includes(operation) && value !== null) {
+          formData.append("value", value.toString());
+          formData.append("value", value.toString());
+        }
+
+        if (operation.includes("butterworth") && value !== null) {
+          formData.append("value", value.toString());
+        }
         
     
         let responseType;
         if (operation === "histogram_equalization") {
-            responseType = "json";
-        } else if (operation ===  "histogram") {
-            responseType = "blob";
+          responseType = "json";
+        } else if (operation === "histogram" || operation === "fourier_filter_plot") {
+          responseType = "blob"; // Fourier grafiği için blob bekliyoruz
         } else {
-            responseType = "blob";
+          responseType = "blob";
         }
 
         const axiosResponse = await axios.post("http://127.0.0.1:5000/process", formData, {
@@ -194,13 +207,15 @@
           return true;
       } 
       else if (operation === "fourier_filter_plot") {
-          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
-          const imageUrl = URL.createObjectURL(axiosResponse.data);
-          setFourierHistogramImage(imageUrl);
-          setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
-          setHistogramEqualizationImage(null); // Fourier histogramını temizle
-          return true;
-      } 
+        if (fourierHistogramImage) {
+          URL.revokeObjectURL(fourierHistogramImage);
+        }
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setFourierHistogramImage(imageUrl);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+        return imageUrl;
+      }
       else if (operation === "band_gecirendurduran_plot") {
         // Blob'u doğrudan URL'ye çevir ve state'e kaydet
         const imageUrl = URL.createObjectURL(axiosResponse.data);
@@ -210,6 +225,17 @@
         setFourierHistogramImage(null);
         return true;
     } 
+        else if (operation === "butterworth_plot") {
+          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+          const imageUrl = URL.createObjectURL(axiosResponse.data);
+          setButterworthFilterPlotImage(imageUrl)
+          setBandFilterPlotImage(null);
+          setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
+          setHistogramEqualizationImage(null); // Fourier histogramını temizle
+          setFourierHistogramImage(null);
+
+          return true;
+      } 
       else {
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setProcessedImage(imageUrl);
@@ -231,22 +257,24 @@
     }
 };
 
-    const backToOriginalImage = () => {
-      setProcessedImage(originalImage);
-      setBaseImage(null);
-      setOperations([]);
-      setBaseOperation(null);
-      setBrightnessValue(127);
-      setThresholdingValue(127);
-      setHistogramImage(null);
-      setHistogramEqualizationImage(null);
-      setFourierHistogramImage(null);
-      setBandFilterPlotImage(null);
-      setShowBandFilterPlot(false);
-      setTempManualContrastImage(null);
-      setShowManualInputs(false);
-      setShowMultiLinearInputs(false);
-    };
+const backToOriginalImage = () => {
+  setProcessedImage(originalImage);
+  setBaseImage(null);
+  setOperations([]);
+  setBaseOperation(null);
+  setBrightnessValue(127);
+  setThresholdingValue(127);
+  setHistogramImage(null);
+  setHistogramEqualizationImage(null);
+  setFourierHistogramImage(null);
+  setBandFilterPlotImage(null);
+  setShowBandFilterPlot(false);
+  setTempManualContrastImage(null);
+  setShowManualInputs(false);
+  setShowMultiLinearInputs(false);
+  setShowButterworthFilterPlot(false); // Butterworth grafiğini kapat
+  setButterworthFilterPlotImage(null); // Butterworth grafik resmini temizle
+};
 
 
     const resizeImage = (file, width, height, callback) => {
@@ -391,7 +419,7 @@
 
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage) && (
+              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -417,6 +445,13 @@
                     <Box>
                       <Typography variant="h6">Band Filtre Grafiği</Typography>
                       <img src={bandFilterPlotImage} alt="Band Filtre Grafiği" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+
+                  {butterworthFilterPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Butterworth Filtre Grafiği</Typography>
+                      <img src={butterworthFilterPlotImage} alt="Butterworth Filtre Grafiği" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   
@@ -544,6 +579,13 @@
               processedImage={processedImage}
               setBandFilterPlotImage={setBandFilterPlotImage}
               setShowBandFilterPlot={setShowBandFilterPlot}
+            />
+            <ButterworthFiltre
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setButterworthFilterPlotImage={setButterworthFilterPlotImage}
+              setShowButterworthFilterPlot={setShowButterworthFilterPlot}
             />
 
             {/*
