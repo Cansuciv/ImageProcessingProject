@@ -31,6 +31,7 @@
   import BandGecirenDurduranFiltre from './Processes/BandGecirenDurduranFiltre.jsx';
   import ButterworthFiltre from './Processes/ButterworthFiltre.jsx';
   import GaussianFilter from './Processes/GaussianFilter.jsx';
+  import HomomorphicFilter from './Processes/HomomorphicFilter.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -68,7 +69,8 @@
         // Determine which image to use
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
-          "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage"].includes(operation)
+          "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
+          "homomorphic_filter"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -178,7 +180,13 @@
         if (["gaussian_lpf", "gaussian_hpf", "i"].includes(operation) && value !== null) {
           formData.append("value", value.toString());
         }
-        
+        if (operation.includes("homomorphic_filter") && value) {
+          const homomorphicData = JSON.parse(value);
+          formData.append("d0", homomorphicData.d0.toString());
+          formData.append("h_l", homomorphicData.h_l.toString());
+          formData.append("h_h", homomorphicData.h_h.toString());
+          formData.append("c", homomorphicData.c.toString());
+        }
     
         let responseType;
         if (operation === "histogram_equalization") {
@@ -202,14 +210,22 @@
           const histogramImage = `data:image/png;base64,${axiosResponse.data.histogram_image}`;
           setProcessedImage(equalizedImage);
           setHistogramEqualizationImage(histogramImage);
+          setHistogramImage(null);
+          setFourierHistogramImage(null);
+          setBandFilterPlotImage(null);
+          setButterworthFilterPlotImage(null);
+          setGaussianFilterPlotImage(null);
           return true;
       } 
       else if (operation === "histogram") {
           // Blob'u doğrudan URL'ye çevir ve state'e kaydet
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setHistogramImage(imageUrl);
-          setHistogramEqualizationImage(null); // Eski histogram eşitleme verilerini temizle
-          setFourierHistogramImage(null); // Fourier histogramını temizle
+          setHistogramEqualizationImage(null); 
+          setFourierHistogramImage(null);
+          setBandFilterPlotImage(null);
+          setButterworthFilterPlotImage(null);
+          setGaussianFilterPlotImage(null); 
           return true;
       } 
       else if (operation === "fourier_filter_plot") {
@@ -220,15 +236,20 @@
         setFourierHistogramImage(imageUrl);
         setHistogramImage(null);
         setHistogramEqualizationImage(null);
+        setBandFilterPlotImage(null);
+        setButterworthFilterPlotImage(null);
+        setGaussianFilterPlotImage(null);
         return imageUrl;
       }
       else if (operation === "band_gecirendurduran_plot") {
         // Blob'u doğrudan URL'ye çevir ve state'e kaydet
         const imageUrl = URL.createObjectURL(axiosResponse.data);
         setBandFilterPlotImage(imageUrl);
-        setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
-        setHistogramEqualizationImage(null); // Fourier histogramını temizle
+        setHistogramImage(null); 
+        setHistogramEqualizationImage(null); 
         setFourierHistogramImage(null);
+        setButterworthFilterPlotImage(null);
+        setGaussianFilterPlotImage(null);
         return true;
     } 
         else if (operation === "butterworth_plot") {
@@ -236,10 +257,10 @@
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setButterworthFilterPlotImage(imageUrl)
           setBandFilterPlotImage(null);
-          setHistogramImage(null); // Eski histogram eşitleme verilerini temizle
-          setHistogramEqualizationImage(null); // Fourier histogramını temizle
+          setHistogramImage(null); 
+          setHistogramEqualizationImage(null);
           setFourierHistogramImage(null);
-
+          setGaussianFilterPlotImage(null);
           return true;
       } 
       else if (operation === "gaussian_plot") {
@@ -295,7 +316,6 @@ const backToOriginalImage = () => {
   setShowGaussianFilterPlot(false);
   setGaussianFilterPlotImage(false);
 };
-
 
     const resizeImage = (file, width, height, callback) => {
       const reader = new FileReader();
@@ -619,6 +639,11 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
               setGaussianFilterPlotImage={setGaussianFilterPlotImage}
               setShowGaussianFilterPlot={setShowGaussianFilterPlot}
+            />
+            <HomomorphicFilter
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
             />
 
             {/*

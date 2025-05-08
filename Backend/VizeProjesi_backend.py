@@ -1037,6 +1037,40 @@ def gaussian_plot(image, D0):
     except Exception as e:
         print(f"Gaussian filter plot error: {str(e)}")
         raise e
+    
+
+def homomorphic_filter(image, d0, h_l, h_h, c):
+    # Görüntüyü gri tona çevir
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Logaritmik dönüşüm
+    log_image = np.log1p(np.float32(gray))
+
+    # Fourier dönüşümü
+    f_transform = np.fft.fft2(log_image)
+    f_transform_shifted = np.fft.fftshift(f_transform)
+
+    # Homomorfik filtre oluştur
+    rows, cols = gray.shape
+    center = (cols//2, rows//2)
+    H = np.zeros((rows, cols), np.float32)
+
+    for u in range(rows):
+        for v in range(cols):
+            D = np.sqrt((u - center[1])**2 + (v - center[0])**2)
+            H[u, v] = (h_h - h_l) * (1 - np.exp(-c * (D**2 / d0**2))) + h_l
+
+    # Filtreyi uygula
+    filtered = f_transform_shifted * H
+    filtered_image = np.fft.ifft2(np.fft.ifftshift(filtered)).real
+
+   # Üstel dönüşüm
+    final_image = np.expm1(filtered_image)
+    final_image = cv2.normalize(final_image, None, 0, 255, cv2.NORM_MINMAX)
+    final_image = np.uint8(final_image)
+    cv2.imshow("homomorphic_filter", final_image)
+    return final_image
+
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -1159,6 +1193,8 @@ def process_image(image, operation, value=None):
     elif operation == "gaussian_plot":
         D0 = int(value)
         return gaussian_plot(image, D0)
+    elif operation == "homomorphic_filter" and value is not None:
+        return homomorphic_filter(image, value, value, value, value)
 
 
 @app.route("/process", methods=["POST"])
@@ -1797,6 +1833,39 @@ def process():
                 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+    # Handle homomorphic filter
+    if operation == "homomorphic_filter":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get parameters
+            d0 = float(request.form.get("d0", 30))
+            h_l = float(request.form.get("h_l", 0.5))
+            h_h = float(request.form.get("h_h", 2.0))
+            c = float(request.form.get("c", 1.0))
+            
+            # Process image
+            processed_img = homomorphic_filter(image, d0, h_l, h_h, c)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+        
                 
     # Rest of your existing process function...
     value = request.form.get("value")
