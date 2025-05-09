@@ -1149,7 +1149,83 @@ def sobel_plot(image, ksize):
         print(f"Sobel plot error: {str(e)}")
         raise e
     
+def prewitt_x(image):
+    prewitt_x = cv2.filter2D(image, -1, np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]]))
+    prewitt_x_norm = cv2.normalize(prewitt_x, None, 0, 255, cv2.NORM_MINMAX)
+    prewitt_x_uint8 = prewitt_x_norm.astype(np.uint8)
+    cv2.imshow("Prewitt X", prewitt_x_uint8)
+    return prewitt_x_uint8
 
+def prewitt_y(image):
+    prewitt_y = cv2.filter2D(image, -1, np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]]))
+    prewitt_y_norm = cv2.normalize(prewitt_y, None, 0, 255, cv2.NORM_MINMAX)
+    prewitt_y_uint8 = prewitt_y_norm.astype(np.uint8)
+    cv2.imshow("Prewitt Y", prewitt_y_uint8)
+    return prewitt_y_uint8
+
+
+def prewitt_magnitude(image):
+    prewitt_x = cv2.filter2D(image, -1, np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]]))
+    prewitt_y = cv2.filter2D(image, -1, np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]]))
+    
+    # Kenar büyüklüğünü hesapla
+    prewitt_magnitude = cv2.magnitude(prewitt_x.astype(np.float32), prewitt_y.astype(np.float32))
+
+    prewitt_mag_norm = cv2.normalize(prewitt_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+    prewitt_mag_uint8 = prewitt_mag_norm.astype(np.uint8)
+    cv2.imshow("Prewitt Toplam (|G|)", prewitt_mag_uint8)
+    return prewitt_mag_uint8
+    
+def prewitt_plot(image):
+    try:
+        # Convert to grayscale if color image
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Calculate Prewitt components
+        prewitt_x = cv2.filter2D(image, -1, np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]]))
+        prewitt_y = cv2.filter2D(image, -1, np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]]))
+        prewitt_magnitude = cv2.magnitude(
+            prewitt_x.astype(np.float32), 
+            prewitt_y.astype(np.float32)
+        )
+
+        # Normalize images for display
+        prewitt_x_norm = cv2.normalize(prewitt_x, None, 0, 255, cv2.NORM_MINMAX)
+        prewitt_y_norm = cv2.normalize(prewitt_y, None, 0, 255, cv2.NORM_MINMAX)
+        prewitt_mag_norm = cv2.normalize(prewitt_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+
+        # Create plot
+        plt.figure(figsize=(12, 4))
+        
+        plt.subplot(1, 3, 1)
+        plt.imshow(prewitt_x_norm, cmap='gray')
+        plt.title("Prewitt X")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(prewitt_y_norm, cmap='gray')
+        plt.title("Prewitt Y")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(prewitt_mag_norm, cmap='gray')
+        plt.title("Toplam Kenar (|G|)")
+        plt.axis('off')
+
+        plt.tight_layout()
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plt.close()
+        
+        return buf
+
+    except Exception as e:
+        print(f"Prewitt plot error: {str(e)}")
+        raise e
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -1286,6 +1362,14 @@ def process_image(image, operation, value=None):
     elif operation == "sobel_plot" and value is not None:
         ksize = int(value)
         return sobel_plot(image, ksize)
+    elif operation == "prewitt_x":
+        return prewitt_x(image)
+    elif operation == "prewitt_y":
+        return prewitt_y(image)
+    elif operation == "prewitt_magnitude":
+        return prewitt_magnitude(image)
+    elif operation == "prewitt_plot":
+        return prewitt_plot(image)
 
 
 @app.route("/process", methods=["POST"])
@@ -1987,6 +2071,56 @@ def process():
             elif operation == "sobel_plot":
                 plot_buffer = sobel_plot(image, ksize)
                 return send_file(plot_buffer, mimetype="image/png")
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+
+    if operation in ["prewitt_x", "prewitt_y", "prewitt_magnitude"]:
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            if operation == "prewitt_x":
+                processed_img = prewitt_x(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "prewitt_y":
+                processed_img = prewitt_y(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "prewitt_magnitude":
+                processed_img = prewitt_magnitude(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(
+                    io.BytesIO(img_buffer.tobytes()),
+                    mimetype="image/jpeg"
+                )
+                     
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    if operation == "prewitt_plot":
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Create the plot
+            plot_buffer = prewitt_plot(image)
+            return send_file(
+                plot_buffer,
+                mimetype="image/png"
+            )
                 
         except Exception as e:
             return jsonify({"error": str(e)}), 500

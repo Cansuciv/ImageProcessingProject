@@ -33,6 +33,7 @@
   import GaussianFilter from './Processes/GaussianFilter.jsx';
   import HomomorphicFilter from './Processes/HomomorphicFilter.jsx';
   import Sobel from './Processes/Sobel.jsx';
+  import Prewitt from './Processes/Prewitt.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -63,6 +64,8 @@
     const [gaussianFilterPlotImage, setGaussianFilterPlotImage] = useState(null);
     const [sobelPlotImage, setSobelPlotImage] = useState(null);
     const [showSobelPlot, setShowSobelPlot] = useState(false);
+    const [prewittPlotImage, setPrewittPlotImage] = useState(null);
+    const [showPrewittPlot, setShowPrewittPlot] = useState(false);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -73,7 +76,7 @@
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
-          "homomorphic_filter", "sobel_plot"].includes(operation)
+          "homomorphic_filter", "sobel_plot", "prewitt_plot"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -221,10 +224,11 @@
           setBandFilterPlotImage(null);
           setButterworthFilterPlotImage(null);
           setGaussianFilterPlotImage(null);
+          setSobelPlotImage(null);
+          setPrewittPlotImage(null);
           return true;
       } 
       else if (operation === "histogram") {
-          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setHistogramImage(imageUrl);
           setHistogramEqualizationImage(null); 
@@ -232,6 +236,8 @@
           setBandFilterPlotImage(null);
           setButterworthFilterPlotImage(null);
           setGaussianFilterPlotImage(null); 
+          setSobelPlotImage(null);
+          setPrewittPlotImage(null);
           return true;
       } 
       else if (operation === "fourier_filter_plot") {
@@ -245,10 +251,11 @@
         setBandFilterPlotImage(null);
         setButterworthFilterPlotImage(null);
         setGaussianFilterPlotImage(null);
+        setSobelPlotImage(null);
+        setPrewittPlotImage(null);
         return imageUrl;
       }
       else if (operation === "band_gecirendurduran_plot") {
-        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
         const imageUrl = URL.createObjectURL(axiosResponse.data);
         setBandFilterPlotImage(imageUrl);
         setHistogramImage(null); 
@@ -256,10 +263,11 @@
         setFourierHistogramImage(null);
         setButterworthFilterPlotImage(null);
         setGaussianFilterPlotImage(null);
+        setSobelPlotImage(null);
+        setPrewittPlotImage(null);
         return true;
     } 
         else if (operation === "butterworth_plot") {
-          // Blob'u doğrudan URL'ye çevir ve state'e kaydet
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setButterworthFilterPlotImage(imageUrl)
           setBandFilterPlotImage(null);
@@ -267,10 +275,11 @@
           setHistogramEqualizationImage(null);
           setFourierHistogramImage(null);
           setGaussianFilterPlotImage(null);
+          setSobelPlotImage(null);
+          setPrewittPlotImage(null);
           return true;
       } 
       else if (operation === "gaussian_plot") {
-        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
         const imageUrl = URL.createObjectURL(axiosResponse.data);
         setGaussianFilterPlotImage(imageUrl);
         setButterworthFilterPlotImage(null);
@@ -278,20 +287,32 @@
         setHistogramImage(null);
         setHistogramEqualizationImage(null);
         setFourierHistogramImage(null);
-      
+        setSobelPlotImage(null);
+        setPrewittPlotImage(null);
         return imageUrl;
       }
       else if (operation === "sobel_plot") {
-        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
         const imageUrl = URL.createObjectURL(axiosResponse.data);
         setSobelPlotImage(imageUrl)
-        setGaussianFilterPlotImage(false);
+        setGaussianFilterPlotImage(null);
         setButterworthFilterPlotImage(null);
         setBandFilterPlotImage(null);
         setHistogramImage(null);
         setHistogramEqualizationImage(null);
         setFourierHistogramImage(null);
-      
+        setPrewittPlotImage(null);
+        return imageUrl;
+      }
+      else if (operation === "prewitt_plot") {
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setPrewittPlotImage(imageUrl);
+        setSobelPlotImage(null);
+        setGaussianFilterPlotImage(null);
+        setButterworthFilterPlotImage(null);
+        setBandFilterPlotImage(null);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+        setFourierHistogramImage(null);
         return imageUrl;
       }
       else {
@@ -336,6 +357,8 @@ const backToOriginalImage = () => {
   setGaussianFilterPlotImage(false);
   setShowSobelPlot(false);
   setSobelPlotImage(false);
+  setShowPrewittPlot(false);
+  setPrewittPlotImage(false);
 };
 
     const resizeImage = (file, width, height, callback) => {
@@ -480,7 +503,9 @@ const backToOriginalImage = () => {
 
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage || sobelPlotImage) && (
+              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage
+               || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage
+                || sobelPlotImage || prewittPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -525,6 +550,12 @@ const backToOriginalImage = () => {
                     <Box>
                       <Typography variant="h6">Sobel Grafikleri</Typography>
                       <img src={sobelPlotImage} alt="Sobel Grafikleri" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {prewittPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Prewitt Grafikleri</Typography>
+                      <img src={prewittPlotImage} alt="Prewitt Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   
@@ -678,6 +709,13 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
               setSobelPlotImage={setSobelPlotImage}
               setShowSobelPlot={setShowSobelPlot}
+            />
+            <Prewitt
+              processImage={(operation) => handleProcessButtonClick(operation, processImage)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setPrewittPlotImage={setPrewittPlotImage}
+              setShowPrewittPlot={setShowPrewittPlot}
             />
 
             {/*
