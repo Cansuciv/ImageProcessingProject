@@ -34,6 +34,7 @@
   import HomomorphicFilter from './Processes/HomomorphicFilter.jsx';
   import Sobel from './Processes/Sobel.jsx';
   import Prewitt from './Processes/Prewitt.jsx';
+  import Roberts from './Processes/Roberts.jsx'
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -66,6 +67,8 @@
     const [showSobelPlot, setShowSobelPlot] = useState(false);
     const [prewittPlotImage, setPrewittPlotImage] = useState(null);
     const [showPrewittPlot, setShowPrewittPlot] = useState(false);
+    const [robertsPlotImage, setRobertsPlotImage] = useState(null);
+    const [showRobertslot, setShowRobertsPlot] = useState(false);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -76,7 +79,7 @@
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
-          "homomorphic_filter", "sobel_plot", "prewitt_plot"].includes(operation)
+          "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -226,6 +229,7 @@
           setGaussianFilterPlotImage(null);
           setSobelPlotImage(null);
           setPrewittPlotImage(null);
+          setRobertsPlotImage(null);
           return true;
       } 
       else if (operation === "histogram") {
@@ -238,6 +242,7 @@
           setGaussianFilterPlotImage(null); 
           setSobelPlotImage(null);
           setPrewittPlotImage(null);
+          setRobertsPlotImage(null);
           return true;
       } 
       else if (operation === "fourier_filter_plot") {
@@ -253,6 +258,7 @@
         setGaussianFilterPlotImage(null);
         setSobelPlotImage(null);
         setPrewittPlotImage(null);
+        setRobertsPlotImage(null);
         return imageUrl;
       }
       else if (operation === "band_gecirendurduran_plot") {
@@ -265,6 +271,7 @@
         setGaussianFilterPlotImage(null);
         setSobelPlotImage(null);
         setPrewittPlotImage(null);
+        setRobertsPlotImage(null);
         return true;
     } 
         else if (operation === "butterworth_plot") {
@@ -277,6 +284,7 @@
           setGaussianFilterPlotImage(null);
           setSobelPlotImage(null);
           setPrewittPlotImage(null);
+          setRobertsPlotImage(null);
           return true;
       } 
       else if (operation === "gaussian_plot") {
@@ -289,6 +297,7 @@
         setFourierHistogramImage(null);
         setSobelPlotImage(null);
         setPrewittPlotImage(null);
+        setRobertsPlotImage(null);
         return imageUrl;
       }
       else if (operation === "sobel_plot") {
@@ -301,11 +310,26 @@
         setHistogramEqualizationImage(null);
         setFourierHistogramImage(null);
         setPrewittPlotImage(null);
+        setRobertsPlotImage(null);
         return imageUrl;
       }
       else if (operation === "prewitt_plot") {
         const imageUrl = URL.createObjectURL(axiosResponse.data);
         setPrewittPlotImage(imageUrl);
+        setSobelPlotImage(null);
+        setGaussianFilterPlotImage(null);
+        setButterworthFilterPlotImage(null);
+        setBandFilterPlotImage(null);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+        setFourierHistogramImage(null);
+        setRobertsPlotImage(null);
+        return imageUrl;
+      }
+      else if (operation === "roberts_plot") {
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setRobertsPlotImage(imageUrl);
+        setPrewittPlotImage(null);
         setSobelPlotImage(null);
         setGaussianFilterPlotImage(null);
         setButterworthFilterPlotImage(null);
@@ -359,6 +383,8 @@ const backToOriginalImage = () => {
   setSobelPlotImage(false);
   setShowPrewittPlot(false);
   setPrewittPlotImage(false);
+  setShowRobertsPlot(false);
+  setRobertsPlotImage(false)
 };
 
     const resizeImage = (file, width, height, callback) => {
@@ -505,7 +531,7 @@ const backToOriginalImage = () => {
               {/* Diğer grafikler (histogram vb.) */}
               {(histogramImage || histogramEqualizationImage ||fourierHistogramImage
                || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage
-                || sobelPlotImage || prewittPlotImage) && (
+                || sobelPlotImage || prewittPlotImage || robertsPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -556,6 +582,12 @@ const backToOriginalImage = () => {
                     <Box>
                       <Typography variant="h6">Prewitt Grafikleri</Typography>
                       <img src={prewittPlotImage} alt="Prewitt Grafikleri" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {robertsPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Roberts Grafikleri</Typography>
+                      <img src={robertsPlotImage} alt="Roberts Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   
@@ -716,6 +748,13 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
               setPrewittPlotImage={setPrewittPlotImage}
               setShowPrewittPlot={setShowPrewittPlot}
+            />
+            <Roberts
+              processImage={(operation) => handleProcessButtonClick(operation, processImage)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setRobertsPlotImage={setRobertsPlotImage}
+              setShowRobertsPlot={setShowRobertsPlot}
             />
 
             {/*

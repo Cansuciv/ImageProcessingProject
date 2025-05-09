@@ -594,7 +594,7 @@ def fourier_filter_plot(image, radius):
             hpf_image = cv2.normalize(hpf_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
             magnitude_spectrum = cv2.normalize(spectrum_channels[0], None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 4))
 
         # Original Image
         plt.subplot(1, 4, 1)
@@ -745,7 +745,7 @@ def band_gecirendurduran_plot(image, D1, D2):
         band_stop_result = band_durduran_filtre(image, D1, D2)
         
         # Plot oluştur
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 4))
         
         # Orijinal görüntü
         plt.subplot(1, 4, 1)
@@ -902,7 +902,7 @@ def butterworth_plot(image, D0, n):
         original_display = image if len(image.shape) == 3 else image.copy()
 
         # Plot
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 4))
         plt.subplot(1, 3, 1)
         plt.imshow(cv2.cvtColor(original_display, cv2.COLOR_BGR2RGB))
         plt.title("Original")
@@ -1010,7 +1010,7 @@ def gaussian_plot(image, D0):
         hpf_result = cv2.merge(hpf_channels) if len(hpf_channels) == 3 else hpf_channels[0]
         original_display = image if len(image.shape) == 3 else image.copy()
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(12, 4))
         plt.subplot(1, 3, 1)
         plt.imshow(cv2.cvtColor(original_display, cv2.COLOR_BGR2RGB))
         plt.title("Original")
@@ -1227,6 +1227,112 @@ def prewitt_plot(image):
         print(f"Prewitt plot error: {str(e)}")
         raise e
 
+
+def roberts_x(image):
+    roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    roberts_x_result = cv2.filter2D(image, -1, roberts_x)
+    roberts_x_norm = cv2.normalize(roberts_x_result, None, 0, 255, cv2.NORM_MINMAX)
+    roberts_x_uint8 = roberts_x_norm.astype(np.uint8)
+    cv2.imshow("Roberts X", roberts_x_uint8)
+    return roberts_x_uint8
+
+def roberts_y(image):
+    roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
+    roberts_y_result = cv2.filter2D(image, -1, roberts_y)
+    roberts_y_norm = cv2.normalize(roberts_y_result, None, 0, 255, cv2.NORM_MINMAX)
+    roberts_y_uint8 = roberts_y_norm.astype(np.uint8)
+    cv2.imshow("Roberts Y", roberts_y_uint8)
+    return roberts_y_uint8
+
+
+def roberts_magnitude(image):
+    roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
+    
+    # Filtreleri uygula
+    roberts_x_result = cv2.filter2D(image, -1, roberts_x)
+    roberts_y_result = cv2.filter2D(image, -1, roberts_y)
+    
+    roberts_magnitude = cv2.magnitude(roberts_x_result.astype(np.float32), roberts_y_result.astype(np.float32))
+
+    roberts_mag_norm = cv2.normalize(roberts_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+    roberts_mag_uint8 = roberts_mag_norm.astype(np.uint8)
+    cv2.imshow("Roberts Toplam (|G|)", roberts_mag_uint8)
+    return roberts_mag_uint8
+    
+def roberts_plot(image):
+    try:
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
+        roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
+        
+        # Filtreleri uygula
+        roberts_x_result = cv2.filter2D(image, -1, roberts_x)
+        roberts_y_result = cv2.filter2D(image, -1, roberts_y)
+        
+        roberts_magnitude = cv2.magnitude(roberts_x_result.astype(np.float32), roberts_y_result.astype(np.float32))
+
+        # Görselleri çiz
+        plt.figure(figsize=(12, 4))
+        plt.subplot(1, 3, 1)
+        plt.imshow(roberts_x_result, cmap='gray')
+        plt.title("Roberts X")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(roberts_y_result, cmap='gray')
+        plt.title("Roberts Y")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(roberts_magnitude, cmap='gray')
+        plt.title("Toplam Kenar (|G|)")
+        plt.axis('off')
+
+        plt.tight_layout()
+        
+        # Save plot to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plt.close()
+        
+        return buf
+
+    except Exception as e:
+        print(f"Roberts plot error: {str(e)}")
+        raise e
+
+def compass_edge_detection(image, E, W, N, S):
+    # Compass filtre matrislerini tanımla
+    compass_kernels = [
+        np.array(E),  # Doğu (E)
+        np.array(W),  # Batı (W)
+        np.array(N),  # Kuzey (N)
+        np.array(S)   # Güney (S)
+    ]
+    
+    # Görüntüyü yükle
+    image = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+  
+    # Tüm yönleri hesapla ve maksimum değeri al
+    compass_edges = np.zeros_like(image, dtype=np.float32)
+    for kernel in compass_kernels:
+        edge = cv2.filter2D(image, -1, kernel)
+        compass_edges = np.maximum(compass_edges, edge)
+        
+    normalized = cv2.normalize(compass_edges, None, 0, 255, cv2.NORM_MINMAX)
+    normalized = normalized.astype(np.uint8)
+    cv2.imshow("compass_edge_detection_normalized", normalized)
+
+    # Görüntüyü görselleştir
+    plt.imshow(compass_edges, cmap='gray')
+    plt.title("Compass Kenar Algılama Sonucu")
+    plt.show()
+
+
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1370,6 +1476,14 @@ def process_image(image, operation, value=None):
         return prewitt_magnitude(image)
     elif operation == "prewitt_plot":
         return prewitt_plot(image)
+    elif operation == "roberts_x":
+        return roberts_x(image)
+    elif operation == "roberts_y":
+        return roberts_y(image)
+    elif operation == "roberts_magnitude":
+        return roberts_magnitude(image)
+    elif operation == "roberts_plot":
+        return roberts_plot(image)
 
 
 @app.route("/process", methods=["POST"])
@@ -2125,6 +2239,55 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+
+    if operation in ["roberts_x", "roberts_y", "roberts_magnitude"]:
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            if operation == "roberts_x":
+                processed_img = roberts_x(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "roberts_y":
+                processed_img = roberts_y(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "roberts_magnitude":
+                processed_img = roberts_magnitude(image)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(
+                    io.BytesIO(img_buffer.tobytes()),
+                    mimetype="image/jpeg"
+                )
+                     
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    if operation == "roberts_plot":
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Create the plot
+            plot_buffer = roberts_plot(image)
+            return send_file(
+                plot_buffer,
+                mimetype="image/png"
+            )
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
         
                 
     # Rest of your existing process function...
