@@ -32,6 +32,7 @@
   import ButterworthFiltre from './Processes/ButterworthFiltre.jsx';
   import GaussianFilter from './Processes/GaussianFilter.jsx';
   import HomomorphicFilter from './Processes/HomomorphicFilter.jsx';
+  import Sobel from './Processes/Sobel.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -60,6 +61,8 @@
     const [butterworthFilterPlotImage, setButterworthFilterPlotImage] = useState(null);
     const [showGaussianFilterPlot, setShowGaussianFilterPlot] = useState(false);
     const [gaussianFilterPlotImage, setGaussianFilterPlotImage] = useState(null);
+    const [sobelPlotImage, setSobelPlotImage] = useState(null);
+    const [showSobelPlot, setShowSobelPlot] = useState(false);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -70,7 +73,7 @@
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
-          "homomorphic_filter"].includes(operation)
+          "homomorphic_filter", "sobel_plot"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -187,6 +190,9 @@
           formData.append("h_h", homomorphicData.h_h.toString());
           formData.append("c", homomorphicData.c.toString());
         }
+        if (["sobel_x", "sobel_y", "sobel_magnitude", "sobel_plot"].includes(operation) && value !== null) {
+          formData.append("value", value.toString());
+        }
     
         let responseType;
         if (operation === "histogram_equalization") {
@@ -275,6 +281,19 @@
       
         return imageUrl;
       }
+      else if (operation === "sobel_plot") {
+        // Blob'u doğrudan URL'ye çevir ve state'e kaydet
+        const imageUrl = URL.createObjectURL(axiosResponse.data);
+        setSobelPlotImage(imageUrl)
+        setGaussianFilterPlotImage(false);
+        setButterworthFilterPlotImage(null);
+        setBandFilterPlotImage(null);
+        setHistogramImage(null);
+        setHistogramEqualizationImage(null);
+        setFourierHistogramImage(null);
+      
+        return imageUrl;
+      }
       else {
           const imageUrl = URL.createObjectURL(axiosResponse.data);
           setProcessedImage(imageUrl);
@@ -315,6 +334,8 @@ const backToOriginalImage = () => {
   setButterworthFilterPlotImage(null); 
   setShowGaussianFilterPlot(false);
   setGaussianFilterPlotImage(false);
+  setShowSobelPlot(false);
+  setSobelPlotImage(false);
 };
 
     const resizeImage = (file, width, height, callback) => {
@@ -459,7 +480,7 @@ const backToOriginalImage = () => {
 
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage) && (
+              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage || sobelPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
@@ -498,6 +519,12 @@ const backToOriginalImage = () => {
                     <Box>
                       <Typography variant="h6">Gaussian Filtre Grafiği</Typography>
                       <img src={gaussianFilterPlotImage} alt="Gaussian Filtre Grafiği" style={{ marginTop: 10 }} />
+                    </Box>
+                  )}
+                  {sobelPlotImage && (
+                    <Box>
+                      <Typography variant="h6">Sobel Grafikleri</Typography>
+                      <img src={sobelPlotImage} alt="Sobel Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   
@@ -644,6 +671,13 @@ const backToOriginalImage = () => {
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               originalImage={originalImage}
               processedImage={processedImage}
+            />
+            <Sobel
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+              setSobelPlotImage={setSobelPlotImage}
+              setShowSobelPlot={setShowSobelPlot}
             />
 
             {/*

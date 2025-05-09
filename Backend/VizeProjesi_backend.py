@@ -1072,6 +1072,85 @@ def homomorphic_filter(image, d0, h_l, h_h, c):
     return final_image
 
 
+def sobel_x(image, ksize):
+    sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize)
+    sobel_x_norm = cv2.normalize(sobel_x, None, 0, 255, cv2.NORM_MINMAX)
+    sobel_x_uint8 = sobel_x_norm.astype(np.uint8)
+    cv2.imshow("Sobel X", sobel_x_uint8)
+    return sobel_x_uint8
+
+def sobel_y(image, ksize):
+    sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize)
+    sobel_y_norm = cv2.normalize(sobel_y, None, 0, 255, cv2.NORM_MINMAX)
+    sobel_y_uint8 = sobel_y_norm.astype(np.uint8)
+    cv2.imshow("Sobel Y", sobel_y_uint8)
+    return sobel_y_uint8
+
+
+def sobel_magnitude(image, ksize):
+    # Eğer görüntü renkliyse gri tonlamaya çevir
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    
+    sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
+    sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
+    sobel_magnitude = cv2.magnitude(sobel_x, sobel_y)
+    sobel_mag_norm = cv2.normalize(sobel_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+    sobel_mag_uint8 = sobel_mag_norm.astype(np.uint8)
+    return sobel_mag_uint8
+    
+def sobel_plot(image, ksize):
+    try:
+        # Renkli görüntüyü griye çevir
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Sobel işlemleri
+        sobel_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=ksize)
+        sobel_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=ksize)
+        sobel_mag = cv2.magnitude(sobel_x, sobel_y)
+
+        # Görselleri normalize et
+        sobel_x_norm = cv2.normalize(sobel_x, None, 0, 255, cv2.NORM_MINMAX)
+        sobel_y_norm = cv2.normalize(sobel_y, None, 0, 255, cv2.NORM_MINMAX)
+        sobel_mag_norm = cv2.normalize(sobel_mag, None, 0, 255, cv2.NORM_MINMAX)
+
+        # Görselleri çiz
+        plt.figure(figsize=(12, 4))
+        
+        plt.subplot(1, 3, 1)
+        plt.imshow(sobel_x_norm, cmap='gray')
+        plt.title("Sobel X")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(sobel_y_norm, cmap='gray')
+        plt.title("Sobel Y")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(sobel_mag_norm, cmap='gray')
+        plt.title("Toplam Kenar (|G|)")
+        plt.axis('off')
+
+        plt.tight_layout()
+        
+        # Plot'u belleğe kaydet
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plt.close()
+        
+        return buf
+
+    except Exception as e:
+        print(f"Sobel plot error: {str(e)}")
+        raise e
+    
+
+
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1195,6 +1274,18 @@ def process_image(image, operation, value=None):
         return gaussian_plot(image, D0)
     elif operation == "homomorphic_filter" and value is not None:
         return homomorphic_filter(image, value, value, value, value)
+    elif operation == "sobel_x" and value is not None:
+        ksize = int(value)
+        return sobel_x(image, ksize)
+    elif operation == "sobel_y" and value is not None:
+        ksize = int(value)
+        return sobel_y(image, ksize)
+    elif operation == "sobel_magnitude" and value is not None:
+        ksize = int(value)
+        return sobel_magnitude(image, ksize)
+    elif operation == "sobel_plot" and value is not None:
+        ksize = int(value)
+        return sobel_plot(image, ksize)
 
 
 @app.route("/process", methods=["POST"])
@@ -1862,6 +1953,41 @@ def process():
                 mimetype="image/jpeg"
             )
             
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    if operation in ["sobel_x", "sobel_y", "sobel_magnitude", "sobel_plot"]:
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get D0 value
+            ksize = int(request.form.get("value", 3))
+            
+            if operation == "sobel_x":
+                processed_img = sobel_x(image, ksize)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "sobel_y":
+                processed_img = sobel_y(image, ksize)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(io.BytesIO(img_buffer.tobytes()), mimetype="image/jpeg")
+            elif operation == "sobel_magnitude":
+                processed_img = sobel_magnitude(image, ksize)
+                _, img_buffer = cv2.imencode('.jpg', processed_img)
+                return send_file(
+                    io.BytesIO(img_buffer.tobytes()),
+                    mimetype="image/jpeg"
+                )
+            elif operation == "sobel_plot":
+                plot_buffer = sobel_plot(image, ksize)
+                return send_file(plot_buffer, mimetype="image/png")
+                
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
