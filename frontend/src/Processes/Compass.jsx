@@ -130,7 +130,7 @@ const Compass = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '25ch' },
+              '& > :not(style)': { m: 1, width: '20ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

@@ -1308,7 +1308,7 @@ def roberts_plot(image):
         
 def compass_edge_detection(image, compass_matrices):
     try:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         compass_kernels = [
             np.array(compass_matrices["E"], dtype=np.float32),
@@ -1317,10 +1317,10 @@ def compass_edge_detection(image, compass_matrices):
             np.array(compass_matrices["S"], dtype=np.float32)
         ]
 
-        edges = np.zeros_like(gray, dtype=np.float32)
+        edges = np.zeros_like(image, dtype=np.float32)
 
         for kernel in compass_kernels:
-            edge = cv2.filter2D(gray, -1, kernel)
+            edge = cv2.filter2D(image, -1, kernel)
             edges = np.maximum(edges, edge)
 
         # Normalize the edges to 0-255 range
@@ -1337,6 +1337,23 @@ def compass_edge_detection(image, compass_matrices):
         print(f"Compass Edge Detection Error: {str(e)}")
         raise e
 
+def canny(image, threshold1, threshold2):
+    try:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+
+        # Apply Canny edge detection
+        edges = cv2.Canny(gray, threshold1, threshold2)
+       
+        return edges
+
+    except Exception as e:
+        print(f"Canny edge detection error: {str(e)}")
+        raise e
+    
+    
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1491,7 +1508,11 @@ def process_image(image, operation, value=None):
     elif operation == "compass_edge_detection" and value is not None:
         compass_matrices = json.loads(value)
         return compass_edge_detection(image, compass_matrices)
-
+    elif operation == "canny":
+        threshold1 = int(request.form.get("threshold1", 50))
+        threshold2 = int(request.form.get("threshold2", 150))
+        return canny(image, threshold1, threshold2)
+   
 @app.route("/process", methods=["POST"])
 def process():
     file = request.files.get("image")
@@ -2332,8 +2353,32 @@ def process():
             print(f"Compass edge detection error: {str(e)}")
             return jsonify({"error": str(e)}), 500
         
-
-
+    # Handle canny Filter correction
+    if operation == "canny":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get thresholds
+            threshold1 = int(request.form.get("threshold1", 50))
+            threshold2 = int(request.form.get("threshold2", 150))
+            
+            # Process image
+            processed_img = canny(image, threshold1, threshold2)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
         
                         
     # Rest of your existing process function...

@@ -36,6 +36,7 @@
   import Prewitt from './Processes/Prewitt.jsx';
   import Roberts from './Processes/Roberts.jsx';
   import Compass from './Processes/Compass.jsx';
+  import Canny from './Processes/Canny.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -81,7 +82,7 @@
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
           "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot",
-          "compass_edge_detection"].includes(operation)
+          "compass_edge_detection", "canny"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -203,6 +204,11 @@
         }
         if (operation === "compass_edge_detection" && value) {
           formData.append("compass_matrices", JSON.stringify(value));
+        }
+        // Gaussian Blur Filter 
+        if (operation.includes("canny") && value) {
+          formData.append("threshold1", value.threshold1.toString());
+          formData.append("threshold2", value.threshold2.toString());
         }
 
 
@@ -768,6 +774,11 @@ const backToOriginalImage = () => {
               setShowRobertsPlot={setShowRobertsPlot}
             />
             <Compass
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
+            <Canny
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               originalImage={originalImage}
               processedImage={processedImage}
