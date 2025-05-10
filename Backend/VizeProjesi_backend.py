@@ -1450,6 +1450,27 @@ def hough_circle_detection(image, dp, minDist, param1, param2, minRadius, maxRad
         print(f"Hough Circle Detection Error: {str(e)}")
         raise e
     
+
+def kmeans_segmentation(image, k, max_iter, epsilon):
+    try:
+        # Reshape the image to 2D array (pixels)
+        pixel_values = image.reshape((-1, 3))
+        pixel_values = np.float32(pixel_values)
+
+        # K-Means algorithm
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, max_iter, epsilon)
+        _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+        # Convert the centers to uint8
+        centers = np.uint8(centers)
+        segmented_image = centers[labels.flatten()].reshape(image.shape)
+
+        return segmented_image
+
+    except Exception as e:
+        print(f"K-Means Error: {str(e)}")
+        raise e
+    
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1618,6 +1639,27 @@ def process_image(image, operation, value=None):
         gamma = float(value.get("gamma", 0.5))
         psi = float(value.get("psi", 0))
         return gabor_filter(image, ksize, sigma, pi, lambd, gamma, psi)
+    elif operation == "hough_line_detection" and value is not None:
+        threshold = int(value.get("threshold", 150))
+        angle_resolution = int(value.get("angle_resolution", 180))
+        canny_threshold1 = int(value.get("canny_threshold1", 50))
+        canny_threshold2 = int(value.get("canny_threshold2", 150))
+        return hough_line_detection(image, threshold, angle_resolution, canny_threshold1, canny_threshold2)
+    elif operation == "hough_circle_detection" and value is not None:
+        dp = float(value.get("dp", 1))
+        minDist = int(value.get("minDist", 30))
+        param1 = int(value.get("param1", 50))
+        param2 = int(value.get("param2", 30))
+        minRadius = int(value.get("minRadius", 10))
+        maxRadius = int(value.get("maxRadius", 100))
+        blur_ksize = int(value.get("blur_ksize", 9))
+        blur_sigma = int(value.get("blur_sigma", 2))
+        return hough_circle_detection(image, dp, minDist, param1, param2, minRadius, maxRadius, blur_ksize, blur_sigma)
+    elif operation == "kmeans_segmentation" and value is not None:
+        k = int(value.get("k", 3))
+        max_iter = int(value.get("max_iter", 100))
+        epsilon = float(value.get("epsilon", 0.2))
+        return kmeans_segmentation(image, k, max_iter, epsilon)
     
 @app.route("/process", methods=["POST"])
 def process():
@@ -2632,8 +2674,35 @@ def process():
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-
         
+    # Handle K-means segmentation
+    if operation == "kmeans_segmentation":
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get parameters
+            k = int(request.form.get("k", 3))
+            max_iter = int(request.form.get("max_iter", 100))
+            epsilon = float(request.form.get("epsilon", 0.2))
+            
+            # Process image
+            processed_img = kmeans_segmentation(image, k, max_iter, epsilon)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+            
                         
     # Rest of your existing process function...
     value = request.form.get("value")

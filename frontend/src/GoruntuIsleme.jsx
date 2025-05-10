@@ -40,6 +40,7 @@
   import Laplace from './Processes/Laplace.jsx';
   import Gabor from './Processes/Gabor.jsx';
   import HoughDonusumu from './Processes/HoughDonusumu.jsx';
+  import KmeansSegmentation from './Processes/KmeansSegmentation.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -236,6 +237,11 @@
           formData.append("maxRadius", value.maxRadius.toString());
           formData.append("blur_ksize", value.blur_ksize.toString());
           formData.append("blur_sigma", value.blur_sigma.toString());
+        }
+        if (operation === "kmeans_segmentation" && value) {
+          formData.append("k", value.k.toString());
+          formData.append("max_iter", value.max_iter.toString());
+          formData.append("epsilon", value.epsilon.toString());
         }
 
 
@@ -816,6 +822,11 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
             />
             <HoughDonusumu
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
+            <KmeansSegmentation
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               originalImage={originalImage}
               processedImage={processedImage}
