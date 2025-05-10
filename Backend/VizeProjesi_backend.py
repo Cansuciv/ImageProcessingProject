@@ -5,6 +5,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import io
+from io import BytesIO
 import json
 import zipfile
 import base64
@@ -20,8 +21,8 @@ PROCESSED_FOLDER = "processed"
 # Resmi Açma
 def open_image(img_path):
     img_read = cv2.imread(img_path)
-    resize_image = cv2.resize(img_read, (320, 300))
-    return resize_image 
+    #resize_image = cv2.resize(img_read, (320, 300))
+    return img_read 
 
 
 # Resmi Kaydetme
@@ -1304,34 +1305,37 @@ def roberts_plot(image):
     except Exception as e:
         print(f"Roberts plot error: {str(e)}")
         raise e
-
-def compass_edge_detection(image, E, W, N, S):
-    # Compass filtre matrislerini tanımla
-    compass_kernels = [
-        np.array(E),  # Doğu (E)
-        np.array(W),  # Batı (W)
-        np.array(N),  # Kuzey (N)
-        np.array(S)   # Güney (S)
-    ]
-    
-    # Görüntüyü yükle
-    image = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
-  
-    # Tüm yönleri hesapla ve maksimum değeri al
-    compass_edges = np.zeros_like(image, dtype=np.float32)
-    for kernel in compass_kernels:
-        edge = cv2.filter2D(image, -1, kernel)
-        compass_edges = np.maximum(compass_edges, edge)
         
-    normalized = cv2.normalize(compass_edges, None, 0, 255, cv2.NORM_MINMAX)
-    normalized = normalized.astype(np.uint8)
-    cv2.imshow("compass_edge_detection_normalized", normalized)
+def compass_edge_detection(image, compass_matrices):
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Görüntüyü görselleştir
-    plt.imshow(compass_edges, cmap='gray')
-    plt.title("Compass Kenar Algılama Sonucu")
-    plt.show()
+        compass_kernels = [
+            np.array(compass_matrices["E"], dtype=np.float32),
+            np.array(compass_matrices["W"], dtype=np.float32),
+            np.array(compass_matrices["N"], dtype=np.float32),
+            np.array(compass_matrices["S"], dtype=np.float32)
+        ]
 
+        edges = np.zeros_like(gray, dtype=np.float32)
+
+        for kernel in compass_kernels:
+            edge = cv2.filter2D(gray, -1, kernel)
+            edges = np.maximum(edges, edge)
+
+        # Normalize the edges to 0-255 range
+        edges_normalized = cv2.normalize(edges, None, 0, 255, cv2.NORM_MINMAX)
+        edges_uint8 = edges_normalized.astype(np.uint8)
+
+        # If original was color, convert back to color (optional)
+        if len(image.shape) == 3:
+            edges_uint8 = cv2.cvtColor(edges_uint8, cv2.COLOR_GRAY2BGR)
+
+        return edges_uint8
+
+    except Exception as e:
+        print(f"Compass Edge Detection Error: {str(e)}")
+        raise e
 
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -1484,7 +1488,9 @@ def process_image(image, operation, value=None):
         return roberts_magnitude(image)
     elif operation == "roberts_plot":
         return roberts_plot(image)
-
+    elif operation == "compass_edge_detection" and value is not None:
+        compass_matrices = json.loads(value)
+        return compass_edge_detection(image, compass_matrices)
 
 @app.route("/process", methods=["POST"])
 def process():
@@ -2289,7 +2295,47 @@ def process():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
         
+
+        
+    if operation == "compass_edge_detection":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
                 
+            # Get compass matrices data from form data
+            compass_data = request.form.get("compass_matrices")
+            
+            if not compass_data:
+                return jsonify({"error": "No compass data provided"}), 400
+                
+            try:
+                compass_matrices = json.loads(compass_data)
+            except json.JSONDecodeError as e:
+                return jsonify({"error": f"Invalid compass data format: {str(e)}"}), 400
+            
+            # Process the image
+            processed_img = compass_edge_detection(image, compass_matrices)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            print(f"Compass edge detection error: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+        
+
+
+        
+                        
     # Rest of your existing process function...
     value = request.form.get("value")
     if value is not None:

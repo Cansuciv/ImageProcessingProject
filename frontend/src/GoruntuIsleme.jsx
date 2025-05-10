@@ -34,7 +34,8 @@
   import HomomorphicFilter from './Processes/HomomorphicFilter.jsx';
   import Sobel from './Processes/Sobel.jsx';
   import Prewitt from './Processes/Prewitt.jsx';
-  import Roberts from './Processes/Roberts.jsx'
+  import Roberts from './Processes/Roberts.jsx';
+  import Compass from './Processes/Compass.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -79,7 +80,8 @@
         const imageToUse = 
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
-          "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot"].includes(operation)
+          "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot",
+          "compass_edge_detection"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -91,7 +93,7 @@
           console.error("No image available for processing");
           return false;
         }
-        
+            
         // Get image as blob
         const response = await fetch(imageToUse);
         const blob = await response.blob();
@@ -199,12 +201,21 @@
         if (["sobel_x", "sobel_y", "sobel_magnitude", "sobel_plot"].includes(operation) && value !== null) {
           formData.append("value", value.toString());
         }
-    
+        if (operation === "compass_edge_detection" && value) {
+          formData.append("compass_matrices", JSON.stringify(value));
+        }
+
+
+
+
         let responseType;
         if (operation === "histogram_equalization") {
           responseType = "json";
-        } else if (operation === "histogram" || operation === "fourier_filter_plot") {
-          responseType = "blob"; // Fourier grafiği için blob bekliyoruz
+        } else if (operation === "histogram" || operation === "fourier_filter_plot" || 
+                  operation === "band_gecirendurduran_plot" || operation === "butterworth_plot" ||
+                  operation === "gaussian_plot" || operation === "sobel_plot" ||
+                  operation === "prewitt_plot" || operation === "roberts_plot") {
+          responseType = "blob";
         } else {
           responseType = "blob";
         }
@@ -756,6 +767,12 @@ const backToOriginalImage = () => {
               setRobertsPlotImage={setRobertsPlotImage}
               setShowRobertsPlot={setShowRobertsPlot}
             />
+            <Compass
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
+               
 
             {/*
           <FrameOptions 
