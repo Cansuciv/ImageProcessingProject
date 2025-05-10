@@ -39,6 +39,7 @@
   import Canny from './Processes/Canny.jsx';
   import Laplace from './Processes/Laplace.jsx';
   import Gabor from './Processes/Gabor.jsx';
+  import HoughDonusumu from './Processes/HoughDonusumu.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -219,6 +220,22 @@
           formData.append("lambd", value.lambd.toString());
           formData.append("gamma", value.gamma.toString());
           formData.append("psi", value.psi.toString());
+        }
+        if (operation === "hough_line_detection" && value) {
+          formData.append("threshold", value.threshold.toString());
+          formData.append("angle_resolution", value.angle_resolution.toString());
+          formData.append("canny_threshold1", value.canny_threshold1.toString());
+          formData.append("canny_threshold2", value.canny_threshold2.toString());
+        }
+        if (operation === "hough_circle_detection" && value) {
+          formData.append("dp", value.dp.toString());
+          formData.append("minDist", value.minDist.toString());
+          formData.append("param1", value.param1.toString());
+          formData.append("param2", value.param2.toString());
+          formData.append("minRadius", value.minRadius.toString());
+          formData.append("maxRadius", value.maxRadius.toString());
+          formData.append("blur_ksize", value.blur_ksize.toString());
+          formData.append("blur_sigma", value.blur_sigma.toString());
         }
 
 
@@ -798,7 +815,12 @@ const backToOriginalImage = () => {
               originalImage={originalImage}
               processedImage={processedImage}
             />
-                          
+            <HoughDonusumu
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
+                                      
 
             {/*
           <FrameOptions 

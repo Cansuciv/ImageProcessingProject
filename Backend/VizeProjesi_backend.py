@@ -1400,6 +1400,56 @@ def gabor_filter(image, ksize, sigma, pi, lambd, gamma, psi):
         print(f"Gabor Filter Error: {str(e)}")
         raise e
     
+def hough_line_detection(image, threshold, angle_resolution, canny_threshold1, canny_threshold2):
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        edges = cv2.Canny(gray, canny_threshold1, canny_threshold2)
+
+        lines = cv2.HoughLines(edges, 1, np.pi / angle_resolution, threshold)
+        output = image.copy()
+
+        if lines is not None:
+            for line in lines:
+                rho, theta = line[0]
+                a, b = np.cos(theta), np.sin(theta)
+                x0, y0 = a * rho, b * rho
+                x1, y1 = int(x0 + 1000 * (-b)), int(y0 + 1000 * (a))
+                x2, y2 = int(x0 - 1000 * (-b)), int(y0 - 1000 * (a))
+                cv2.line(output, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        else:
+            print("Doğru bulunamadı.")
+
+        return output
+
+    except Exception as e:
+        print(f"Hough Line Detection Error: {str(e)}")
+        raise e
+
+
+def hough_circle_detection(image, dp, minDist, param1, param2, minRadius, maxRadius,blur_ksize, blur_sigma):
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        blurred = cv2.GaussianBlur(gray, blur_ksize, blur_sigma)
+
+        circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp, minDist,
+                                   param1=param1, param2=param2,
+                                   minRadius=minRadius, maxRadius=maxRadius)
+
+        output = image.copy()
+        if circles is not None:
+            circles = np.uint16(np.around(circles))
+            for i in circles[0, :]:
+                cv2.circle(output, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                cv2.circle(output, (i[0], i[1]), 2, (255, 0, 0), 3)
+        else:
+            print("Çember bulunamadı.")
+
+        return output
+
+    except Exception as e:
+        print(f"Hough Circle Detection Error: {str(e)}")
+        raise e
+    
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1555,7 +1605,7 @@ def process_image(image, operation, value=None):
         compass_matrices = json.loads(value)
         return compass_edge_detection(image, compass_matrices)
     elif operation == "canny":
-        threshold1 = int(request.form.get("threshold1", 50))
+        threshold1 = int(request.form.get("threshold1"))
         threshold2 = int(request.form.get("threshold2", 150))
         return canny(image, threshold1, threshold2)
     elif operation == "laplace_edge_detection":
@@ -2498,6 +2548,88 @@ def process():
                 io.BytesIO(img_buffer.tobytes()),
                 mimetype="image/jpeg"
             )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+    
+
+    # Handle Hough Line Detection
+    if operation == "hough_line_detection":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get parameters
+            threshold = int(request.form.get("threshold", 150))
+            angle_resolution = int(request.form.get("angle_resolution", 180))
+            canny_threshold1 = int(request.form.get("canny_threshold1", 50))
+            canny_threshold2 = int(request.form.get("canny_threshold2", 150))
+            
+            # Process image
+            processed_img = hough_line_detection(
+                image, 
+                threshold=threshold,
+                angle_resolution=angle_resolution,
+                canny_threshold1=canny_threshold1,
+                canny_threshold2=canny_threshold2
+            )
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # Handle Hough Circle Detection
+    if operation == "hough_circle_detection":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get parameters
+            dp = float(request.form.get("dp", 1))
+            minDist = int(request.form.get("minDist", 30))
+            param1 = int(request.form.get("param1", 50))
+            param2 = int(request.form.get("param2", 30))
+            minRadius = int(request.form.get("minRadius", 10))
+            maxRadius = int(request.form.get("maxRadius", 100))
+            blur_ksize = int(request.form.get("blur_ksize", 9))
+            blur_sigma = int(request.form.get("blur_sigma", 2))
+            
+            # Process image
+            processed_img = hough_circle_detection(
+                image,
+                dp=dp,
+                minDist=minDist,
+                param1=param1,
+                param2=param2,
+                minRadius=minRadius,
+                maxRadius=maxRadius,
+                blur_ksize=(blur_ksize, blur_ksize),
+                blur_sigma=blur_sigma
+            )
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+            
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
