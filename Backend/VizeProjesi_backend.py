@@ -1352,7 +1352,30 @@ def canny(image, threshold1, threshold2):
     except Exception as e:
         print(f"Canny edge detection error: {str(e)}")
         raise e
-    
+
+def laplace_edge_detection(image):
+    try:
+        # Convert to grayscale if color image
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+
+        # Apply Laplace filter
+        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+
+        # Take absolute and convert to uint8
+        laplacian_abs = np.uint8(np.absolute(laplacian))
+
+        # Optional: Convert to 3-channel for color consistency
+        if len(image.shape) == 3:
+            laplacian_abs = cv2.cvtColor(laplacian_abs, cv2.COLOR_GRAY2BGR)
+
+        return laplacian_abs
+
+    except Exception as e:
+        print(f"Laplace Edge Detection Error: {str(e)}")
+        raise e
     
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
@@ -1512,6 +1535,8 @@ def process_image(image, operation, value=None):
         threshold1 = int(request.form.get("threshold1", 50))
         threshold2 = int(request.form.get("threshold2", 150))
         return canny(image, threshold1, threshold2)
+    elif operation == "laplace_edge_detection":
+        return laplace_edge_detection(image)
    
 @app.route("/process", methods=["POST"])
 def process():
@@ -2379,6 +2404,31 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+    
+
+    if operation == "laplace_edge_detection":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Process image
+            processed_img = laplace_edge_detection(image)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+                
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
         
                         
     # Rest of your existing process function...

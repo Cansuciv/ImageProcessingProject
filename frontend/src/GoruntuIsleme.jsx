@@ -37,6 +37,7 @@
   import Roberts from './Processes/Roberts.jsx';
   import Compass from './Processes/Compass.jsx';
   import Canny from './Processes/Canny.jsx';
+  import Laplace from './Processes/Laplace.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -362,7 +363,7 @@
       
           // Update baseImage for specific operations
           if (["convert_gray", "red", "green", "blue", "negative",
-              "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel"].includes(operation)) {
+              "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", "laplace_edge_detection"].includes(operation)) {
               setBaseImage(imageUrl);
           }
           if (operation.includes("mirror")) {
@@ -783,7 +784,8 @@ const backToOriginalImage = () => {
               originalImage={originalImage}
               processedImage={processedImage}
             />
-               
+            <Laplace processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+                          
 
             {/*
           <FrameOptions 
