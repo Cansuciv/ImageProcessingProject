@@ -38,6 +38,7 @@
   import Compass from './Processes/Compass.jsx';
   import Canny from './Processes/Canny.jsx';
   import Laplace from './Processes/Laplace.jsx';
+  import Gabor from './Processes/Gabor.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -83,7 +84,7 @@
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
           "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot",
-          "compass_edge_detection", "canny"].includes(operation)
+          "compass_edge_detection", "canny", "gabor_filter"].includes(operation)
             ? (processedImage || originalImage)
             : (["brightness", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
@@ -211,7 +212,14 @@
           formData.append("threshold1", value.threshold1.toString());
           formData.append("threshold2", value.threshold2.toString());
         }
-
+        if (operation.startsWith("gabor_filter")) {
+          formData.append("ksize", value.ksize.toString());
+          formData.append("sigma", value.sigma.toString());
+          formData.append("pi", value.pi.toString());
+          formData.append("lambd", value.lambd.toString());
+          formData.append("gamma", value.gamma.toString());
+          formData.append("psi", value.psi.toString());
+        }
 
 
 
@@ -785,6 +793,11 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
             />
             <Laplace processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+            <Gabor
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedImage={processedImage}
+            />
                           
 
             {/*

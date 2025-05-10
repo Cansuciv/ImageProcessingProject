@@ -1377,6 +1377,29 @@ def laplace_edge_detection(image):
         print(f"Laplace Edge Detection Error: {str(e)}")
         raise e
     
+def gabor_filter(image, ksize, sigma, pi, lambd, gamma, psi):
+    try:
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
+
+        # Gabor kernel oluştur
+        gabor_kernel = cv2.getGaborKernel((ksize, ksize), sigma, np.pi/pi, lambd, gamma, psi, ktype=cv2.CV_32F)
+        
+        # Filtreyi uygula
+        filtered = cv2.filter2D(gray, cv2.CV_8UC3, gabor_kernel)
+        
+        # Eğer orijinal renkliyse, gri görüntüyü BGR'ye çevir
+        if len(image.shape) == 3:
+            filtered = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
+        
+        return filtered
+
+    except Exception as e:
+        print(f"Gabor Filter Error: {str(e)}")
+        raise e
+    
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1537,7 +1560,15 @@ def process_image(image, operation, value=None):
         return canny(image, threshold1, threshold2)
     elif operation == "laplace_edge_detection":
         return laplace_edge_detection(image)
-   
+    elif operation == "gabor_filter":
+        ksize = int(value.get("ksize", 21))
+        sigma = float(value.get("sigma", 5))
+        pi = float(value.get("pi", 4))
+        lambd = float(value.get("lambd", 10))
+        gamma = float(value.get("gamma", 0.5))
+        psi = float(value.get("psi", 0))
+        return gabor_filter(image, ksize, sigma, pi, lambd, gamma, psi)
+    
 @app.route("/process", methods=["POST"])
 def process():
     file = request.files.get("image")
@@ -2426,6 +2457,47 @@ def process():
                 mimetype="image/jpeg"
             )
                 
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+        
+    if operation.startswith("gabor_filter"):
+        try:
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+            
+            # Get parameters
+            params = {
+                "ksize": int(request.form.get("ksize", 21)),
+                "sigma": float(request.form.get("sigma", 5)),
+                "pi": float(request.form.get("pi", 4)),
+                "lambd": float(request.form.get("lambd", 10)),
+                "gamma": float(request.form.get("gamma", 0.5)),
+                "psi": float(request.form.get("psi", 0))
+            }
+            
+            # Process image
+            processed_img = gabor_filter(
+                image,
+                ksize=params["ksize"],
+                sigma=params["sigma"],
+                pi=params["pi"],
+                lambd=params["lambd"],
+                gamma=params["gamma"],
+                psi=params["psi"]
+            )
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
