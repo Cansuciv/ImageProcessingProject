@@ -125,11 +125,20 @@ const ButterworthFiltre = ({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "200px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -141,8 +150,8 @@ const ButterworthFiltre = ({
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -178,7 +187,7 @@ const ButterworthFiltre = ({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList
                   id="split-button-menu"
@@ -221,54 +230,71 @@ const ButterworthFiltre = ({
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              p: 1,
               border: '1px solid #ddd',
               borderRadius: 1,
-              width: '70%',
+              width: '185px',
+              backgroundColor: 'white'
             }}
             noValidate
             autoComplete="off"
           >
-            <TextField
-              id="D0"
-              label="D0 Değeri"
-              variant="outlined"
-              value={D0}
-              onChange={handleD0Change}
-              type="number"
-              inputProps={{ min: 1, max: 100 }}
-              sx={{ width: '100%' }}
-            />
-            <TextField
-              id="n"
-              label="n Değeri (Derece)"
-              variant="outlined"
-              value={n}
-              onChange={handleNChange}
-              type="number"
-              inputProps={{ min: 1, max: 10 }}
-              sx={{ width: '100%', mt: 2 }}
-            />
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1,
+              width: '140px',
+              justifyContent: 'space-between',
+            }}>
+              <TextField
+                id="D0"
+                label="D0"
+                variant="outlined"
+                size="small"
+                value={D0}
+                onChange={handleD0Change}
+                type="number"
+                inputProps={{ min: 1, max: 100 }}
+                sx={{ width: '70px' }}
+              />
+              <TextField
+                id="n"
+                label="n"
+                variant="outlined"
+                size="small"
+                value={n}
+                onChange={handleNChange}
+                type="number"
+                inputProps={{ min: 1, max: 10 }}
+                sx={{ width: '70px' }}
+              />
+            </Box>
             <Button
               variant="contained"
+              disableElevation
+              size="small"
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px",
+                height: "25px",
+                textTransform: "none",
+                fontSize: 14,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 1,
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{
-                mt: 2,
-                backgroundColor: "purple",
-                "&:hover": { backgroundColor: "purple" },
-                width: '100%',
-              }}
             >
-              Uygula {butterworthOptions[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>

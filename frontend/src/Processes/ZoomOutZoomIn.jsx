@@ -138,11 +138,20 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "260px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",             
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -154,8 +163,8 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -191,7 +200,7 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -230,6 +239,19 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+      <Box 
+        sx={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          zIndex: 1,
+          backgroundColor: "white",
+          boxShadow: 3,
+          padding: showInputs ? '8px' : '0', // Padding'i azalttık
+          width: '220px'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <Collapse in={showInputs}>
           <Box
             component="form"
@@ -237,8 +259,7 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              p: 1, // Padding'i azalttık
               border: '1px solid #ddd',
               borderRadius: 1
             }}
@@ -249,28 +270,31 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
               id="scale-factor"
               label="Scale Factor"
               variant="outlined"
+              size="small" // Daha küçük boyut
               value={scaleFactor}
               onChange={handleScaleFactorChange}
               type="number"
               inputProps={{ step: "0.1", min: "0.1", max: "10" }}
-              sx={{ mb: 2, width: '100%' }}
+              sx={{ mb: 1, width: '100%' }} // Margin-bottom'ı azalttık
             />
             
             {(selectedIndex === 1 || selectedIndex === 3) && (
-              <FormControl component="fieldset" sx={{ width: '100%', mb: 2 }}>
-                <FormLabel component="legend">Interpolation Type</FormLabel>
+              <FormControl component="fieldset" sx={{ width: '100%', mb: 1 }}>
+                <FormLabel component="legend" sx={{ fontSize: '0.8rem' }}>Interpolation Type</FormLabel>
                 <RadioGroup
                   aria-label="interpolation"
                   name="interpolation-type"
                   value={interpolationType}
                   onChange={handleInterpolationChange}
+                  sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.8rem' } }}
                 >
                   {interpolationOptions.map((option) => (
                     <FormControlLabel 
                       key={option.value}
                       value={option.value} 
-                      control={<Radio />} 
+                      control={<Radio size="small" />} // Daha küçük radio buton
                       label={option.label} 
+                      sx={{ marginBottom: '4px' }}
                     />
                   ))}
                 </RadioGroup>
@@ -279,17 +303,32 @@ const ZoomOutZoomIn = ({ processImage, processedImage, originalImage }) => {
             
             <Button
               variant="contained"
+              disableElevation
+              size="small" // Daha küçük buton
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px", // Genişliği azalttık
+                height: "25px", // Yüksekliği azalttık
+                textTransform: "none",
+                fontSize: 14, // Font boyutunu küçülttük  
+                fontWeight: "bold",             
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mx: 0,
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple" }}
             >
-              Apply {zoomOptions[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>
+      </Box>
       </Box>
     </Box>
   );

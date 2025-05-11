@@ -67,11 +67,19 @@ const Canny = ({ processImage, processedImage, originalImage }) => {
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "Purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "230px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "Purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -98,20 +106,21 @@ const Canny = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '18ch' },
+              '& > :not(style)': { m: 0.5, width: '16ch' }, // Margin ve genişlik azaltıldı
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1, // Üst margin azaltıldı
+              p: 1, // Padding azaltıldı (20px -> 8px)
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: 'white' // Arkaplan rengi eklendi
             }}
             noValidate
             autoComplete="off"
           >
             {error && (
-              <Typography color="error" sx={{ mb: 2 }}>
+              <Typography color="error" sx={{ mb: 1, fontSize: '0.8rem' }}> {/* Yazı boyutu küçültüldü */}
                 {error}
               </Typography>
             )}
@@ -122,9 +131,13 @@ const Canny = ({ processImage, processedImage, originalImage }) => {
               label="Threshold1"
               type="number"
               variant="outlined"
+              size="small" // Daha küçük input boyutu
               value={inputValues.threshold1}
               onChange={handleInputChange}
               inputProps={{ min: 0, max: 255 }}
+              sx={{ 
+                '& .MuiInputBase-root': { height: 40 } // Input yüksekliği ayarı
+              }}
             />
             <TextField
               id="threshold2"
@@ -132,21 +145,38 @@ const Canny = ({ processImage, processedImage, originalImage }) => {
               label="Threshold2"
               type="number"
               variant="outlined"
+              size="small" // Daha küçük input boyutu
               value={inputValues.threshold2}
               onChange={handleInputChange}
               inputProps={{ min: 0, max: 255 }}
+              sx={{ 
+                '& .MuiInputBase-root': { height: 40 } // Input yüksekliği ayarı
+              }}
             />
             
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px", // Genişlik azaltıldı
+                height: "28px", // Yükseklik azaltıldı
+                textTransform: "none",
+                fontSize: '0.8rem', // Yazı boyutu küçültüldü  
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 0.5, // Üst margin azaltıldı
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "Purple", "&:hover": { backgroundColor: "Purple" } }}
             >
-              {isProcessing ? 'Processing...' : 'Apply Canny Filter'}
+              Apply
             </Button>
           </Box>
         </Collapse>

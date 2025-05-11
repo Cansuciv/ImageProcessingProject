@@ -119,12 +119,21 @@
             aria-label="Button group with a nested menu"
         >
             <Button
-            sx={{
-                backgroundColor: "purple",
+              variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "200px",
+                height: "30px",
                 textTransform: "none",
-                fontSize: 18,
-                "&:hover": { backgroundColor: "purple" }
-            }}
+                fontSize: 17,   
+                fontWeight: "bold",             
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mx: 0,
+              }}
             onClick={(e) => {
                 e.stopPropagation();
                 handleShearingClick();
@@ -135,8 +144,8 @@
 
             <Button
             sx={{
-                backgroundColor: "purple",
-                "&:hover": { backgroundColor: "purple" }
+                backgroundColor: "#1f2021",
+                "&:hover": { backgroundColor: "#2e2f30" }
             }}
             size="small"
             aria-controls={open ? 'split-button-menu' : undefined}
@@ -172,7 +181,7 @@
                     placement === 'bottom' ? 'center top' : 'center bottom',
                 }}
             >
-                <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+                <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
                 <ClickAwayListener onClickAway={handleClose}>
                     <MenuList 
                     id="split-button-menu" 
@@ -211,50 +220,63 @@
             }}
             onClick={(e) => e.stopPropagation()}
         >
-            <Collapse in={showInputs}>
+           <Collapse in={showInputs}>
             <Box
-                component="form"
-                sx={{
-                '& > :not(style)': { m: 1, width: '16ch' },
+              component="form"
+              sx={{
+                '& > :not(style)': { m: 0.5, width: '10ch' }, // Daha dar ve daha az boşluk
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                mt: 2,
-                p: 2,
+                mt: 1, // Daha az yukarı boşluk
+                p: 1,  // Daha az padding
                 border: '1px solid #ddd',
-                borderRadius: 1
-                }}
-                noValidate
-                autoComplete="off"
+                borderRadius: 1,
+                backgroundColor: '#ffffff' // Arka plan beyazsa daha düzgün görünür
+              }}
+              noValidate
+              autoComplete="off"
             >
-                
-                <TextField
+              <TextField
                 id="shear-value"
-                label={
-                    selectedIndex <= 1 ? "sh_x" : "sh_y"
-                }
+                label={selectedIndex <= 1 ? "sh_x" : "sh_y"}
                 variant="outlined"
                 value={inputValue}
                 onChange={handleInputChange}
                 type="number"
                 inputProps={{ step: "0.1", min: -5, max: 5 }}
-                />
-                
-                <Button
+                size="small" // TextField'ı daha küçük yapar
+              />
+
+              <Button
                 variant="contained"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  width: "40px",
+                  height: "28px",
+                  textTransform: "none",
+                  fontSize: 14,   
+                  fontWeight: "bold",             
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mt: 1
+                }}
                 onClick={(e) => {
                     e.stopPropagation();
                     handleApply();
                 }}
                 disabled={isProcessing}
-                sx={{ mt: 2, backgroundColor: "purple" }}
-                >
-                Apply {shearingOptions[selectedIndex]}
-                </Button>
+              >
+                Apply
+              </Button>
             </Box>
-            </Collapse>
+          </Collapse>
+
         </Box>
-        </Box>
+      </Box>
     );
     };
 

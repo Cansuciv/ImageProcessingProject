@@ -139,11 +139,20 @@ export default function HoughDonusumu({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "260px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -155,8 +164,8 @@ export default function HoughDonusumu({
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -192,7 +201,7 @@ export default function HoughDonusumu({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList
                   id="split-button-menu"
@@ -354,17 +363,25 @@ export default function HoughDonusumu({
             )}
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "80px",
+                height: "30px",
+                textTransform: "none",
+                fontSize: 17,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mx: 0,
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{
-                mt: 2,
-                backgroundColor: "purple",
-                "&:hover": { backgroundColor: "purple" },
-                width: '100%',
-              }}
             >
               Apply
             </Button>

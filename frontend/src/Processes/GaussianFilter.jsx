@@ -124,11 +124,20 @@ export default function GaussianFilter({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "180px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -140,8 +149,8 @@ export default function GaussianFilter({
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -177,7 +186,7 @@ export default function GaussianFilter({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList
                   id="split-button-menu"
@@ -220,23 +229,21 @@ export default function GaussianFilter({
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
-              border: '1px solid #ddd',
-              borderRadius: 1,
-              width: '70%',
+              gap: 1,
+              p: 1,
+              width: '150px'
             }}
             noValidate
             autoComplete="off"
           >
             <TextField
               id="D0"
-              label="D0 Değeri"
+              label="D0"
               variant="outlined"
+              size="small"
               value={D0}
               onChange={handleD0Change}
               type="number"
@@ -245,19 +252,25 @@ export default function GaussianFilter({
             />
             <Button
               variant="contained"
+              size="small"
+              sx={{
+                backgroundColor: "#1f2021",
+                color: "#cccccc",
+                width: "100%",
+                textTransform: "none",
+                fontSize: 14,
+                fontWeight: "bold",
+                '&:hover': {
+                  backgroundColor: "#2e2f30",
+                },
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{
-                mt: 2,
-                backgroundColor: "purple",
-                "&:hover": { backgroundColor: "purple" },
-                width: '100%',
-              }}
             >
-              Uygula {options[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>

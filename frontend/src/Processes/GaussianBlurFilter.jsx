@@ -82,11 +82,19 @@ const GaussianBlurFilter = ({ processImage, processedImage, originalImage }) => 
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "160px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -113,14 +121,18 @@ const GaussianBlurFilter = ({ processImage, processedImage, originalImage }) => 
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '10ch' },
+              '& > :not(style)': { 
+                m: 0.5,  // Margin'i küçülttük
+                width: '100px'  // Genişliği biraz artırdık
+              },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1,  // Üst margin'i küçülttük
+              p: 1,   // Padding'i küçülttük
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: 'white'  // Arka plan rengi eklendi
             }}
             noValidate
             autoComplete="off"
@@ -130,9 +142,15 @@ const GaussianBlurFilter = ({ processImage, processedImage, originalImage }) => 
               label="Kernel Size"
               variant="outlined"
               name="kernelSize"
+              size="small"  // Küçük boyutlu input
               value={inputValues.kernelSize}
               onChange={handleInputChange}
               placeholder="5,5"
+              sx={{
+                '& .MuiInputBase-root': {
+                  height: '40px'  // Input yüksekliği
+                }
+              }}
             />
             
             <TextField
@@ -140,22 +158,41 @@ const GaussianBlurFilter = ({ processImage, processedImage, originalImage }) => 
               label="Sigma"
               variant="outlined"
               name="sigma"
+              size="small"  // Küçük boyutlu input
               value={inputValues.sigma}
               onChange={handleInputChange}
               type="number"
-              inputProps={{ step: 1}}
+              inputProps={{ step: 1 }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  height: '40px'  // Input yüksekliği
+                }
+              }}
             />
             
             <Button
               variant="contained"
+              disableElevation
+              size="small"  // Küçük boyutlu buton
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "80px",  // Genişliği biraz artırdık
+                height: "32px",
+                textTransform: "none",
+                fontSize: "0.8rem",  // Yazı boyutunu küçülttük  
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 0.5  // Üst margin ekledik
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
-              disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "#7b1fa2" } }}
             >
-              Apply Gaussian Blur
+              Apply
             </Button>
           </Box>
         </Collapse>

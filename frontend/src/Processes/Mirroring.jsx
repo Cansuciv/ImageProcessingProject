@@ -155,13 +155,22 @@ export default function Mirroring({ processImage, originalImage, processedImage 
         ref={anchorRef}
         aria-label="Button group with a nested menu"
       >
-        <Button
-          sx={{
-            backgroundColor: "purple",
-            textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
-          }}
+          <Button
+            variant="contained"
+            disableElevation
+            sx={{
+              backgroundColor: "#1f2021",  
+              color: "#cccccc",            
+              width: "320px",
+              height: "30px",
+              textTransform: "none",
+              fontSize: 17,   
+              fontWeight: "bold",             
+              '&:hover': {
+                backgroundColor: "#2e2f30", 
+              },
+              mx: 0,
+            }}
           onClick={(e) => {
             e.stopPropagation(); // Global click eventini engelle
             if (mirrorOptions[selectedIndex] === "Açısal Aynalama") {
@@ -174,8 +183,8 @@ export default function Mirroring({ processImage, originalImage, processedImage 
         </Button>
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -211,7 +220,7 @@ export default function Mirroring({ processImage, originalImage, processedImage 
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -250,47 +259,65 @@ export default function Mirroring({ processImage, originalImage, processedImage 
         onClick={(e) => e.stopPropagation()} // Input alanı içindeki tıklamaları yakala
       >
         <Collapse in={showAngleInput}>
-          <Box
-            component="form"
-            sx={{
-              '& > :not(style)': { m: 1, width: '20ch' },
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              mt: 2,
-              p: 2,
-              border: '1px solid #ddd',
-              borderRadius: 1
-            }}
-            noValidate
-            autoComplete="off"
-          >
-            <TextField
-              label="Açı (derece)"
-              type="number"
-              value={angle}
-              onChange={(e) => setAngle(parseInt(e.target.value) || 0)}
-              inputProps={{ min: 0, max: 360 }}
-              size="small"
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMirrorOperation();
-              }}
-              sx={{ 
-                mt: 2, 
-                backgroundColor: "purple", 
-                '&:hover': { backgroundColor: "#6a1b9a" },
-                textTransform: "none"
-              }}
-            >
-              Aynalama Uygula
-            </Button>
-          </Box>
-        </Collapse>
+  <Box
+    component="form"
+    sx={{
+      '& > :not(style)': { 
+        m: 0.5, // Margin'i küçülttük
+        width: '16ch' // Genişliği azalttık
+      },
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      mt: 1, // Üst margin'i küçülttük
+      p: 1, // Padding'i küçülttük
+      border: '1px solid #ddd',
+      borderRadius: 1,
+      backgroundColor: 'white' // Arkaplan rengi eklendi
+    }}
+    noValidate
+    autoComplete="off"
+  >
+    <TextField
+      label="Açı (derece)"
+      type="number"
+      value={angle}
+      onChange={(e) => setAngle(parseInt(e.target.value) || 0)}
+      inputProps={{ min: 0, max: 360 }}
+      size="small"
+      sx={{
+        width: '120px', // Daha dar bir genişlik
+        '& .MuiInputBase-root': {
+          height: 36 // Input yüksekliğini küçülttük
+        }
+      }}
+    />
+    <Button
+      variant="contained"
+      disableElevation
+      sx={{
+        backgroundColor: "#1f2021",  
+        color: "#cccccc",            
+        width: "70px", // Daha dar buton
+        height: "28px", // Daha kısa buton
+        textTransform: "none",
+        fontSize: 14, // Daha küçük font   
+        fontWeight: "bold",             
+        '&:hover': {
+          backgroundColor: "#2e2f30", 
+        },
+        mx: 0,
+        mt: 0.5 // Üst margin'i küçülttük
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleMirrorOperation();
+      }}
+    >
+      Uygula
+    </Button>
+  </Box>
+</Collapse>
       </Box>
     </Box>
   );

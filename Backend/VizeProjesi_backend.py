@@ -10,6 +10,7 @@ import json
 import zipfile
 import base64
 from PIL import Image
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -61,6 +62,14 @@ def blue_image(image):
 def negative_image(image):
     return cv2.bitwise_not(image)
 
+def frame(image, sol, sag, ust, alt, renk):
+    cerceveli_resim = cv2.copyMakeBorder(
+        image,
+        ust, alt, sol, sag,
+        borderType=cv2.BORDER_CONSTANT,
+        value=renk
+    )
+    return cerceveli_resim
 
 # Parlaklık artırma/azaltma fonksiyonu
 def adjust_brightness(img, brightness):
@@ -72,6 +81,7 @@ def adjust_brightness(img, brightness):
                 if img[i, j, k] > 255:
                     img[i, j, k] = 255
     return img
+
 
 def thresholding(image, threshold):
     x,y,z = image.shape
@@ -1384,8 +1394,16 @@ def gabor_filter(image, ksize, sigma, pi, lambd, gamma, psi):
         else:
             gray = image
 
+        # Kernel boyutunu tuple olarak ayarla
+        if isinstance(ksize, str):
+            # "x,y" formatından tuple'a çevir
+            ksize_tuple = tuple(map(int, ksize.split(',')))
+        else:
+            # Sayı olarak gelirse (x,x) boyutunda yap
+            ksize_tuple = (ksize, ksize)
+
         # Gabor kernel oluştur
-        gabor_kernel = cv2.getGaborKernel((ksize, ksize), sigma, np.pi/pi, lambd, gamma, psi, ktype=cv2.CV_32F)
+        gabor_kernel = cv2.getGaborKernel(ksize_tuple, sigma, np.pi/pi, lambd, gamma, psi, ktype=cv2.CV_32F)
         
         # Filtreyi uygula
         filtered = cv2.filter2D(gray, cv2.CV_8UC3, gabor_kernel)
@@ -2800,6 +2818,37 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    if operation == "frame":
+        try:
+            # Read image directly from memory
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Get parameters
+            left = int(request.form.get("left", 10))
+            right = int(request.form.get("right", 10))
+            top = int(request.form.get("top", 20))
+            bottom = int(request.form.get("bottom", 20))
+            color_r = int(request.form.get("color[0]", 0))
+            color_g = int(request.form.get("color[1]", 0))
+            color_b = int(request.form.get("color[2]", 255))
+            
+            # Process image
+            processed_img = frame(image, left, right, top, bottom, (color_b, color_g, color_r))
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
                             
     # Rest of your existing process function...
     value = request.form.get("value")
@@ -2852,6 +2901,37 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     return response
+
+@app.route("/save_image", methods=["POST"])
+def save_image():
+    try:
+        if 'image' not in request.files:
+            return jsonify({"error": "No image provided"}), 400
+            
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+            
+        # Create saved_images directory if it doesn't exist
+        saved_dir = os.path.join(app.root_path, 'saved_images')
+        os.makedirs(saved_dir, exist_ok=True)
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"processed_{timestamp}.jpg"
+        save_path = os.path.join(saved_dir, filename)
+        
+        # Save the image
+        file.save(save_path)
+        
+        return jsonify({
+            "message": "Image saved successfully",
+            "path": save_path
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

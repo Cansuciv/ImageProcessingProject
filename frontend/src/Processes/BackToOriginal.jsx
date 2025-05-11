@@ -6,11 +6,23 @@ const BackToOriginal = ({ backToOriginalImage }) => {
     <Button
       variant="contained"
       disableElevation
-      sx={{ backgroundColor: "purple", mx: "auto", marginTop: 5, textTransform: "none", fontSize: 20 }}
+      sx={{
+        backgroundColor: "#A9A9A9", 
+        color: "#1C1C1C",           
+        mx: "auto",
+        textTransform: "none",
+        fontSize: 20,
+        margin: 0,       // ← margin'i sıfırla
+        padding: '6px 16px', // ← padding varsa kontrol et
+        '&:hover': {
+          backgroundColor: "#888888", 
+        },
+      }}
       onClick={backToOriginalImage}
     >
-      Orijinal Resme Geri Dön
+      Orijinal Resim
     </Button>
+
   );
 };
 

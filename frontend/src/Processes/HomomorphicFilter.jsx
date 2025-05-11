@@ -76,11 +76,19 @@ const HomomorphicFilter = ({ processImage, processedImage, originalImage }) => {
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "210px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -107,72 +115,92 @@ const HomomorphicFilter = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '10ch' },
+              '& > :not(style)': { m: 0.5, width: '18ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              p: 1,
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: 'white'
             }}
             noValidate
             autoComplete="off"
           >
-            <TextField
-              id="d0"
-              label="D0"
-              variant="outlined"
-              name="d0"
-              value={inputValues.d0}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ step: 1, min: 1 }}
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                id="d0"
+                label="D0"
+                variant="outlined"
+                size="small"
+                name="d0"
+                value={inputValues.d0}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ step: 1, min: 1 }}
+              />
+              <TextField
+                id="h_l"
+                label="H Low"
+                variant="outlined"
+                size="small"
+                name="h_l"
+                value={inputValues.h_l}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ step: 0.1, min: 0 }}
+              />
+            </Box>
             
-            <TextField
-              id="h_l"
-              label="H Low"
-              variant="outlined"
-              name="h_l"
-              value={inputValues.h_l}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ step: 0.1, min: 0 }}
-            />
-            
-            <TextField
-              id="h_h"
-              label="H High"
-              variant="outlined"
-              name="h_h"
-              value={inputValues.h_h}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ step: 0.1, min: 0 }}
-            />
-            
-            <TextField
-              id="c"
-              label="C"
-              variant="outlined"
-              name="c"
-              value={inputValues.c}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ step: 0.1, min: 0.1 }}
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
+                id="h_h"
+                label="H High"
+                variant="outlined"
+                size="small"
+                name="h_h"
+                value={inputValues.h_h}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ step: 0.1, min: 0 }}
+              />
+              <TextField
+                id="c"
+                label="C"
+                variant="outlined"
+                size="small"
+                name="c"
+                value={inputValues.c}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ step: 0.1, min: 0.1 }}
+              />
+            </Box>
             
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "50px",
+                height: "30px",
+                textTransform: "none",
+                fontSize: 14,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 1,
+                mb: 0.5
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
             >
-              Apply Filter
+              Apply
             </Button>
           </Box>
         </Collapse>

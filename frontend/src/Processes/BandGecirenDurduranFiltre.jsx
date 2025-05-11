@@ -147,11 +147,20 @@ const BandGecirenDurduranFiltre = ({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "170px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -163,8 +172,8 @@ const BandGecirenDurduranFiltre = ({
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -200,7 +209,7 @@ const BandGecirenDurduranFiltre = ({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList
                   id="split-button-menu"
@@ -243,7 +252,6 @@ const BandGecirenDurduranFiltre = ({
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -251,46 +259,64 @@ const BandGecirenDurduranFiltre = ({
               p: 2,
               border: '1px solid #ddd',
               borderRadius: 1,
-              width: '70%',
+              width: '140px',
             }}
             noValidate
             autoComplete="off"
           >
-            <TextField
-              id="D1"
-              label="D1 Değeri"
-              variant="outlined"
-              value={D1}
-              onChange={handleD1Change}
-              type="number"
-              inputProps={{ min: 1, max: 100 }}
-              sx={{ width: '100%' }}
-            />
-            <TextField
-              id="D2"
-              label="D2 Değeri"
-              variant="outlined"
-              value={D2}
-              onChange={handleD2Change}
-              type="number"
-              inputProps={{ min: 1, max: 100 }}
-              sx={{ width: '100%', mt: 2 }}
-            />
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2,
+              width: '100%',
+              justifyContent: 'center'
+            }}>
+              <TextField
+                id="D1"
+                label="D1"
+                variant="outlined"
+                value={D1}
+                onChange={handleD1Change}
+                type="number"
+                inputProps={{ min: 1, max: 100 }}
+                sx={{ width: '70px' }}
+                size="small"
+              />
+              <TextField
+                id="D2"
+                label="D2"
+                variant="outlined"
+                value={D2}
+                onChange={handleD2Change}
+                type="number"
+                inputProps={{ min: 1, max: 100 }}
+                sx={{ width: '70px' }}
+                size="small"
+              />
+            </Box>
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "80px",
+                height: "30px",
+                textTransform: "none",
+                fontSize: 17,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mx: 0,
+                mt: 2
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{
-                mt: 2,
-                backgroundColor: "purple",
-                "&:hover": { backgroundColor: "purple" },
-                width: '100%',
-              }}
             >
-              Uygula {bandOptions[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>

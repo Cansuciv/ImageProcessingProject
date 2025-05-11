@@ -80,12 +80,19 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
-        ref={anchorRef}
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "80px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -96,91 +103,115 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
       </Button>
 
       <Box 
+  sx={{
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    backgroundColor: "white",
+    boxShadow: 3,
+    padding: showInputs ? '8px' : '0',
+    width: '160px'
+  }}
+  onClick={(e) => e.stopPropagation()}
+>
+  <Collapse in={showInputs}>
+    <ClickAwayListener onClickAway={() => setShowInputs(false)}>
+      <Box
+        component="form"
+        onSubmit={handleApply}
         sx={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          zIndex: 1,
-          backgroundColor: "white",
-          boxShadow: 3,
-          padding: showInputs ? '16px' : '0',
-          width: '220px'
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          p: 0.5,
+          border: '1px solid #ddd',
+          borderRadius: 1,
+          width: '150px'
         }}
-        onClick={(e) => e.stopPropagation()}
+        noValidate
+        autoComplete="off"
       >
-        <Collapse in={showInputs}>
-          <ClickAwayListener onClickAway={() => setShowInputs(false)}>
-            <Box
-              component="form"
-              onSubmit={handleApply}  // Use onSubmit instead of onClick
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                mt: 2,
-                p: 2,
-                border: '1px solid #ddd',
-                borderRadius: 1
-              }}
-              noValidate
-              autoComplete="off"
-            >
-              <TextField
-                id="y1-input"
-                label="Y1 (Top)"
-                variant="outlined"
-                name="y1"
-                value={cropValues.y1}
-                onChange={handleInputChange}
-                type="number"
-                sx={{ mb: 2, width: '100%' }}
-              />
-              
-              <TextField
-                id="y2-input"
-                label="Y2 (Bottom)"
-                variant="outlined"
-                name="y2"
-                value={cropValues.y2}
-                onChange={handleInputChange}
-                type="number"
-                sx={{ mb: 2, width: '100%' }}
-              />
-              
-              <TextField
-                id="x1-input"
-                label="X1 (Left)"
-                variant="outlined"
-                name="x1"
-                value={cropValues.x1}
-                onChange={handleInputChange}
-                type="number"
-                sx={{ mb: 2, width: '100%' }}
-              />
-              
-              <TextField
-                id="x2-input"
-                label="X2 (Right)"
-                variant="outlined"
-                name="x2"
-                value={cropValues.x2}
-                onChange={handleInputChange}
-                type="number"
-                sx={{ mb: 2, width: '100%' }}
-              />
-              
-              <Button
-                type="submit"  // Change to type="submit"
-                variant="contained"
-                disabled={isProcessing}
-                sx={{ mt: 2, backgroundColor: "purple" }}
-              >
-                Apply Crop
-              </Button>
-            </Box>
-          </ClickAwayListener>
-        </Collapse>
+        <Box sx={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '4px',
+          width: '100%'
+        }}>
+          <TextField
+            id="y1-input"
+            label="Y1"
+            variant="outlined"
+            name="y1"
+            size="small"
+            value={cropValues.y1}
+            onChange={handleInputChange}
+            type="number"
+            sx={{ width: '60px' }}
+          />
+          
+          <TextField
+            id="y2-input"
+            label="Y2"
+            variant="outlined"
+            name="y2"
+            size="small"
+            value={cropValues.y2}
+            onChange={handleInputChange}
+            type="number"
+            sx={{ width: '60px' }}
+          />
+          
+          <TextField
+            id="x1-input"
+            label="X1"
+            variant="outlined"
+            name="x1"
+            size="small"
+            value={cropValues.x1}
+            onChange={handleInputChange}
+            type="number"
+            sx={{ width: '60px' }}
+          />
+          
+          <TextField
+            id="x2-input"
+            label="X2"
+            variant="outlined"
+            name="x2"
+            size="small"
+            value={cropValues.x2}
+            onChange={handleInputChange}
+            type="number"
+            sx={{ width: '60px' }}
+          />
+        </Box>
+        
+        <Button
+          variant="contained"
+          disableElevation
+          sx={{
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "70px",
+            height: "25px",
+            textTransform: "none",
+            fontSize: 14,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
+            mt: 0.5
+          }}
+          type="submit"
+        >
+          Apply
+        </Button>
       </Box>
+    </ClickAwayListener>
+  </Collapse>
+</Box>
     </Box>
   );
 };

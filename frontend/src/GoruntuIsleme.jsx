@@ -6,6 +6,7 @@
 
   import UploadFile from './Processes/UploadFile.jsx';
   import BackToOriginal from './Processes/BackToOriginal.jsx';
+  import Kaydet from './Processes/Kaydet.jsx';
   import ConvertToGray from './Processes/ConvertToGray.jsx';
   import RedFilter from './Processes/RedFilter.jsx';
   import GreenFilter from './Processes/GreenFilter.jsx';
@@ -43,6 +44,7 @@
   import KmeansSegmentation from './Processes/KmeansSegmentation.jsx';
   import Erode from './Processes/Erode.jsx';
   import Dilate from './Processes/Dilate.jsx';
+  import Frame from './Processes/Frame.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -253,6 +255,15 @@
           formData.append("kernel_size", value.kernel_size.toString());
           formData.append("iterations", value.iterations.toString());
         }
+        if (operation === "frame" && value) {
+        formData.append("left", value.left.toString());
+        formData.append("right", value.right.toString());
+        formData.append("top", value.top.toString());
+        formData.append("bottom", value.bottom.toString());
+        formData.append("color[0]", value.color[0].toString());
+        formData.append("color[1]", value.color[1].toString());
+        formData.append("color[2]", value.color[2].toString());
+      }
 
 
 
@@ -564,24 +575,23 @@ const backToOriginalImage = () => {
       <Box>
         {/* Arkalan rengi ayarlama. Box içinde sx={{backgroundColor}} yapınca kenarlarda beyaz kısımlar kalıyor*/}
         <style>
-          {`html, body {margin: 0;padding: 0; width: 100%;height: 100%; background-color: #E3F2FD;overflow-x: hidden;  }`}
+          {`html, body {margin: 0;padding: 0; width: 100%;height: 100%; background-color:rgb(67, 69, 70);overflow-x: hidden;  }`}
         </style>
 
         <title>Görüntü İşleme</title>
 
         <Box sx={{ textAlign: "center", padding: 2 }}>
-          <Typography variant="h4" gutterBottom>Görsel İşleme Uygulaması</Typography>
           <UploadFile onImageChange={onImageChange} />
 
           {originalImage && (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, marginTop: 3 }}>
               <Box sx={{ display: "flex", justifyContent: "center", gap: 4 }}>
                 <Box>
-                  <Typography variant="h6">Orijinal Resim</Typography>
+                  <Typography variant="h6" color="white">Orijinal Resim</Typography>
                   <img src={originalImage} alt="Orijinal" style={{ marginTop: 10 }} />
                 </Box>
                 <Box>
-                  <Typography variant="h6">İşlenen Resim</Typography>
+                  <Typography variant="h6" color="white">İşlenen Resim</Typography>
                   <img src={tempManualContrastImage || processedImage || originalImage} alt="İşlenmiş" style={{ marginTop: 10 }} />
                 </Box>
               </Box>
@@ -594,58 +604,58 @@ const backToOriginalImage = () => {
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
                     <Box>
-                      <Typography variant="h6">Histogram Grafiği</Typography>
+                      <Typography variant="h6" color="white">Histogram Grafiği</Typography>
                       <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   {histogramEqualizationImage && (
                     <Box>
-                      <Typography variant="h6">Eşitlenmiş Histogram</Typography>
+                      <Typography variant="h6" color="white">Eşitlenmiş Histogram</Typography>
                       <img src={histogramEqualizationImage} alt="Eşitlenmiş Histogram" style={{ marginTop: 10 }} />
                     </Box>
                   )}
 
                   {fourierHistogramImage && (
                     <Box>
-                      <Typography variant="h6">Fourier Spektrumu</Typography>
+                      <Typography variant="h6" color="white">Fourier Spektrumu</Typography>
                       <img src={fourierHistogramImage} alt="Fourier Spektrumu" style={{ marginTop: 10 }} />
                     </Box>
                   )}
 
                   {bandFilterPlotImage && (
                     <Box>
-                      <Typography variant="h6">Band Filtre Grafiği</Typography>
+                      <Typography variant="h6" color="white">Band Filtre Grafiği</Typography>
                       <img src={bandFilterPlotImage} alt="Band Filtre Grafiği" style={{ marginTop: 10 }} />
                     </Box>
                   )}
 
                   {butterworthFilterPlotImage && (
                     <Box>
-                      <Typography variant="h6">Butterworth Filtre Grafiği</Typography>
+                      <Typography variant="h6" color="white">Butterworth Filtre Grafiği</Typography>
                       <img src={butterworthFilterPlotImage} alt="Butterworth Filtre Grafiği" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   {gaussianFilterPlotImage && (
                     <Box>
-                      <Typography variant="h6">Gaussian Filtre Grafiği</Typography>
+                      <Typography variant="h6" color="white">Gaussian Filtre Grafiği</Typography>
                       <img src={gaussianFilterPlotImage} alt="Gaussian Filtre Grafiği" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   {sobelPlotImage && (
                     <Box>
-                      <Typography variant="h6">Sobel Grafikleri</Typography>
+                      <Typography variant="h6" color="white">Sobel Grafikleri</Typography>
                       <img src={sobelPlotImage} alt="Sobel Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   {prewittPlotImage && (
                     <Box>
-                      <Typography variant="h6">Prewitt Grafikleri</Typography>
+                      <Typography variant="h6" color="white">Prewitt Grafikleri</Typography>
                       <img src={prewittPlotImage} alt="Prewitt Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
                   {robertsPlotImage && (
                     <Box>
-                      <Typography variant="h6">Roberts Grafikleri</Typography>
+                      <Typography variant="h6" color="white">Roberts Grafikleri</Typography>
                       <img src={robertsPlotImage} alt="Roberts Grafikleri" style={{ marginTop: 10 }} />
                     </Box>
                   )}
@@ -655,14 +665,24 @@ const backToOriginalImage = () => {
             </Box>
           )}
 
-          <BackToOriginal backToOriginalImage={backToOriginalImage} />
 
-          <Box display="flex" flexWrap="wrap" justifyContent="center" gap={2} marginTop="50px" textTransform={"none"}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+            <BackToOriginal backToOriginalImage={backToOriginalImage} />
+            <Box sx={{ marginRight: '160px' }} /> {/* Boşluk ekler */}
+            <Kaydet processedImage={processedImage} originalImage={originalImage} />
+          </Box>
+
+          <Box display="flex" flexWrap="wrap" justifyContent="flex-start" gap={1} marginTop="50px" textTransform={"none"}>
             <ConvertToGray processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <RedFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <GreenFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <BlueFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <NegativeFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
+              <Frame
+                processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+                originalImage={originalImage}
+                processedImage={processedImage}
+              />
             <BrightnessAdjustment
               brightnessOn={brightnessOn}
               setBrightnessOn={(value) => {

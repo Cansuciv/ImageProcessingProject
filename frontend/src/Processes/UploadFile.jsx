@@ -20,7 +20,7 @@ const VisuallyHiddenInput = styled('input')({
 const UploadFile = ({ onImageChange }) => {
     return (
         <Box sx={{ textAlign: "center", padding: 2 }}>
-            <Button component="label" variant="contained" startIcon={<CloudUploadIcon />} sx={{ marginBottom: 2, marginTop: 5, display: 'flex', mx: 'auto', width: 200, height: 50 }}>
+            <Button component="label" variant="contained" startIcon={<CloudUploadIcon />} sx={{ marginBottom: 2, marginTop: 0, display: 'flex', mx: 'auto', width: 200, height: 50 }}>
                 Upload files
                 <VisuallyHiddenInput type="file" onChange={onImageChange} />
             </Button>

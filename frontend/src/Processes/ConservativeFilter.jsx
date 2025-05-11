@@ -27,14 +27,22 @@ const ConservativeFilter = ({ processImage, processedImage, originalImage }) => 
     <Box sx={{ position: 'relative' }}>
       <Button
         variant="contained"
+        disableElevation
+        sx={{
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "230px",
+          height: "30px",
+          textTransform: "none",
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
+        }}
         onClick={handleConservativeFilter}
         disabled={isProcessing}
-        sx={{
-          backgroundColor: "purple",
-          textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
-        }}
       >
         {isProcessing ? (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>

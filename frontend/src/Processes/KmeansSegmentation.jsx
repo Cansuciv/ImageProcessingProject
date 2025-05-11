@@ -67,11 +67,19 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "240px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -98,12 +106,12 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
+              '& > :not(style)': { m: 0.5, width: '20ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1,
+              p: 1,
               border: '1px solid #ddd',
               borderRadius: 1
             }}
@@ -112,45 +120,62 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
           >
             <TextField
               id="k"
-              label="K (Clusters)"
+              label="K"
               variant="outlined"
               value={params.k}
               onChange={(e) => handleParamChange("k", e.target.value)}
               type="number"
               inputProps={{ min: 2, step: 1 }}
+              size="small"
             />
             <TextField
               id="max_iter"
-              label="Max Iterations"
+              label="Iter"
               variant="outlined"
               value={params.max_iter}
               onChange={(e) => handleParamChange("max_iter", e.target.value)}
               type="number"
               inputProps={{ min: 1, step: 1 }}
+              size="small"
             />
             <TextField
               id="epsilon"
-              label="Epsilon"
+              label="Eps"
               variant="outlined"
               value={params.epsilon}
               onChange={(e) => handleParamChange("epsilon", e.target.value)}
               type="number"
               inputProps={{ min: 0, step: 0.1 }}
+              size="small"
             />
             
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px",
+                height: "28px",
+                textTransform: "none",
+                fontSize: 14,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 1
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
             >
-              Apply Segmentation
+              Apply
             </Button>
           </Box>
         </Collapse>
+
       </Box>
     </Box>
   );

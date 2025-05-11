@@ -99,11 +99,19 @@ const Compass = ({ processImage, processedImage, originalImage }) => {
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "250px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -130,64 +138,90 @@ const Compass = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '20ch' },
+              '& > :not(style)': { m: 0.5, width: '50ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              p: 1,
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: '#f9f9f9'
             }}
             noValidate
             autoComplete="off"
           >
             {error && (
-              <Typography color="error" sx={{ mb: 2 }}>
+              <Typography color="error" sx={{ mb: 1, fontSize: '0.8rem' }}>
                 {error}
               </Typography>
             )}
 
             <TextField
+              size="small"
               id="E-matrix"
               label="E"
               variant="outlined"
               value={matrixStrings.E}
               onChange={(e) => handleMatrixChange('E', e.target.value)}
+              sx={{ fontSize: '0.5rem' }}
             />
             <TextField
+              size="small"
               id="W-matrix"
               label="W"
               variant="outlined"
               value={matrixStrings.W}
               onChange={(e) => handleMatrixChange('W', e.target.value)}
+              sx={{ fontSize: '0.5rem' }}
             />
             <TextField
+              size="small"
               id="N-matrix"
               label="N"
               variant="outlined"
               value={matrixStrings.N}
               onChange={(e) => handleMatrixChange('N', e.target.value)}
+              sx={{ fontSize: '0.5rem' }}
             />
             <TextField
+              size="small"
               id="S-matrix"
               label="S"
               variant="outlined"
               value={matrixStrings.S}
               onChange={(e) => handleMatrixChange('S', e.target.value)}
+              sx={{ fontSize: '0.5rem' }}
             />
-            
-            <Button
-              variant="contained"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleApply();
-              }}
-              disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
-            >
-              {isProcessing ? 'Processing...' : 'Apply Compass Filter'}
-            </Button>
+            <Box sx={{ width: '50px' }}>
+              <Button
+                variant="contained"
+                size="small"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  minWidth: "50px", // minWidth kullanın
+                  wwidth: "50px !important",    // width de ekleyin
+                  height: "28px",
+                  textTransform: "none",
+                  fontSize: '0.8rem',   
+                  fontWeight: "bold",   
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mt: 1,
+                  padding: '0 !important', // Padding'i sıfırlayın
+                  margin: '0 !important',  // Margin'i sıfırlayın
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApply();
+                }}
+                disabled={isProcessing}
+              >
+                Apply
+              </Button>
+            </Box>
           </Box>
         </Collapse>
       </Box>

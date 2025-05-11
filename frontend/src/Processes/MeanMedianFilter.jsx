@@ -147,11 +147,20 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "150px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -163,8 +172,8 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -200,7 +209,7 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -243,14 +252,18 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '15ch' },
+              '& > :not(style)': { 
+                m: 0.5,  // Margin'i küçült
+                width: '12ch'  // Genişliği küçült
+              },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1,  // Margin top'u küçült
+              p: 1,   // Padding'i küçült
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: 'white'  // Arkaplan rengi eklendi
             }}
             noValidate
             autoComplete="off"
@@ -264,6 +277,12 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
                 value={inputValues.kernelSize}
                 onChange={handleInputChange}
                 placeholder="(5,5)"
+                size="small"  // Küçük boyutlu input
+                sx={{
+                  '& .MuiInputBase-root': {
+                    height: 35  // Input yüksekliği
+                  }
+                }}
               />
             ) : (
               <TextField
@@ -275,18 +294,38 @@ const MeanMedianFilter = ({ processImage, processedImage, originalImage }) => {
                 onChange={handleInputChange}
                 type="number"
                 inputProps={{ step: 1 }}
+                size="small"  // Küçük boyutlu input
+                sx={{
+                  '& .MuiInputBase-root': {
+                    height: 35  // Input yüksekliği
+                  }
+                }}
               />
             )}
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px",  // Genişliği küçült
+                height: "25px", // Yüksekliği küçült
+                textTransform: "none",
+                fontSize: 14,   // Yazı boyutunu küçült  
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mx: 0,
+                mt: 0.5  // Üst margin ekle
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "#7b1fa2" } }}
             >
-              Apply {filterOptions[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>

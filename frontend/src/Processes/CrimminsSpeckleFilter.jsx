@@ -58,11 +58,19 @@ const CrimminsSpeckleFilter = ({ processImage, processedImage, originalImage }) 
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "240px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -89,14 +97,11 @@ const CrimminsSpeckleFilter = ({ processImage, processedImage, originalImage }) 
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '10ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
-              border: '1px solid #ddd',
-              borderRadius: 1
+              p: 1,
+              gap: 1
             }}
             noValidate
             autoComplete="off"
@@ -105,22 +110,34 @@ const CrimminsSpeckleFilter = ({ processImage, processedImage, originalImage }) 
               id="threshold"
               label="Threshold"
               variant="outlined"
+              size="small"
               value={thresholdValue}
               onChange={handleInputChange}
               type="number"
               inputProps={{ min: 0, max: 255, step: 1 }}
+              sx={{ width: '120px' }}
             />
             
             <Button
               variant="contained"
+              size="small"
+              sx={{
+                backgroundColor: "#1f2021",
+                color: "#cccccc",
+                width: "80px",
+                textTransform: "none",
+                fontSize: "0.875rem",
+                '&:hover': {
+                  backgroundColor: "#2e2f30",
+                },
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
             >
-              Apply Filter
+              Apply
             </Button>
           </Box>
         </Collapse>

@@ -222,11 +222,20 @@ const ContrastOptions = ({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "270px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",             
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -246,9 +255,20 @@ const ContrastOptions = ({
           {options[selectedIndex]}
         </Button>
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "20px",
+            height: "30px",
+            textTransform: "none",
+            fontSize: 17,   
+            fontWeight: "bold",             
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -284,7 +304,7 @@ const ContrastOptions = ({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -318,7 +338,7 @@ const ContrastOptions = ({
           zIndex: 1,
           backgroundColor: "white",
           boxShadow: 3,
-          width: showMultiLinearInputs ? '600px' : 'auto',
+          width: showMultiLinearInputs ? 'auto' : 'auto',
           padding: showMultiLinearInputs ? '20px' : '0'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -328,80 +348,112 @@ const ContrastOptions = ({
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '20ch' },
               display: 'flex',
-              flexDirection: 'column',
+              flexWrap: 'wrap',
               alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
               mt: 2,
               p: 2,
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              backgroundColor: 'white',
+              maxWidth: '600px',
+              margin: '0 auto'
             }}
             noValidate
             autoComplete="off"
           >
-            <TextField
-              id="in_min"
-              label="in_min"
-              variant="outlined"
-              name="in_min"
-              value={inputValues.in_min}
-              onChange={handleInputChange}
-              type="number"
-            />
-            <TextField
-              id="in_max"
-              label="in_max"
-              variant="outlined"
-              name="in_max"
-              value={inputValues.in_max}
-              onChange={handleInputChange}
-              type="number"
-            />
-            <TextField
-              id="out_min"
-              label="out_min"
-              variant="outlined"
-              name="out_min"
-              value={inputValues.out_min}
-              onChange={handleInputChange}
-              type="number"
-            />
-            <TextField
-              id="out_max"
-              label="out_max"
-              variant="outlined"
-              name="out_max"
-              value={inputValues.out_max}
-              onChange={handleInputChange}
-              type="number"
-            />
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
+              <TextField
+                id="in_min"
+                label="in_min"
+                variant="outlined"
+                name="in_min"
+                value={inputValues.in_min}
+                onChange={handleInputChange}
+                type="number"
+                size="small"
+                sx={{ width: '120px' }}
+                inputProps={{ min: 0, max: 255 }}
+              />
+              <TextField
+                id="in_max"
+                label="in_max"
+                variant="outlined"
+                name="in_max"
+                value={inputValues.in_max}
+                onChange={handleInputChange}
+                type="number"
+                size="small"
+                sx={{ width: '120px' }}
+                inputProps={{ min: inputValues.in_min + 1, max: 255 }}
+              />
+              <TextField
+                id="out_min"
+                label="out_min"
+                variant="outlined"
+                name="out_min"
+                value={inputValues.out_min}
+                onChange={handleInputChange}
+                type="number"
+                size="small"
+                sx={{ width: '120px' }}
+                inputProps={{ min: 0, max: 255 }}
+              />
+              <TextField
+                id="out_max"
+                label="out_max"
+                variant="outlined"
+                name="out_max"
+                value={inputValues.out_max}
+                onChange={handleInputChange}
+                type="number"
+                size="small"
+                sx={{ width: '120px' }}
+                inputProps={{ min: inputValues.out_min + 1, max: 255 }}
+              />
+            </Box>
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                minWidth: "120px",
+                height: "40px",
+                textTransform: "none",
+                fontSize: 17,   
+                fontWeight: "bold",             
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleManualSubmit();
               }}
-              sx={{ mt: 2, backgroundColor: "purple", '&:hover': { backgroundColor: "#6a1b9a" } }}
             >
-              Manual Contrast Stretching Uygula
+              Apply
             </Button>
           </Box>
         </Collapse>
 
-        {/* Multi Linear Contrast Inputs */}
+        {/* Multi Linear Contrast Inputs - Ultra Compact */}
         <Collapse in={showMultiLinearInputs}>
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1 },
+              '& > :not(style)': { m: 0.25 },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 0.5,
+              p: 0.5,
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 0.5,
+              backgroundColor: 'white',
+              maxWidth: '400px'
             }}
             noValidate
             autoComplete="off"
@@ -409,15 +461,15 @@ const ContrastOptions = ({
             {ranges.map((range, index) => (
               <Box key={index} sx={{ 
                 width: '100%',
-                mb: 3,
-                p: 2,
+                mb: 0.5,
+                p: 0.5,
                 border: '1px solid #eee',
-                borderRadius: 1,
+                borderRadius: 0.5,
                 position: 'relative'
               }}>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>Bölge {index + 1}</Typography>
+                <Typography variant="caption" sx={{ mb: 0.5, display: 'block' }}>Bölge {index + 1}</Typography>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={0.5}>
                   <Grid item xs={6} sm={3}>
                     <TextField
                       fullWidth
@@ -427,7 +479,19 @@ const ContrastOptions = ({
                       onChange={(e) => handleRangeChange(index, 'in_min', e.target.value)}
                       type="number"
                       size="small"
-                      inputProps={{ min: 0, max: range.in_max - 1 }}
+                      margin="dense"
+                      inputProps={{ 
+                        min: 0, 
+                        max: range.in_max - 1,
+                        style: { 
+                          padding: '4px 6px',
+                          fontSize: '0.75rem'
+                        }
+                      }}
+                      InputLabelProps={{
+                        shrink: true,
+                        style: { fontSize: '0.75rem' }
+                      }}
                     />
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -439,7 +503,19 @@ const ContrastOptions = ({
                       onChange={(e) => handleRangeChange(index, 'in_max', e.target.value)}
                       type="number"
                       size="small"
-                      inputProps={{ min: range.in_min + 1, max: 255 }}
+                      margin="dense"
+                      inputProps={{ 
+                        min: range.in_min + 1, 
+                        max: 255,
+                        style: { 
+                          padding: '4px 6px',
+                          fontSize: '0.75rem'
+                        }
+                      }}
+                      InputLabelProps={{
+                        shrink: true,
+                        style: { fontSize: '0.75rem' }
+                      }}
                     />
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -451,7 +527,19 @@ const ContrastOptions = ({
                       onChange={(e) => handleRangeChange(index, 'out_min', e.target.value)}
                       type="number"
                       size="small"
-                      inputProps={{ min: 0, max: range.out_max - 1 }}
+                      margin="dense"
+                      inputProps={{ 
+                        min: 0, 
+                        max: range.out_max - 1,
+                        style: { 
+                          padding: '4px 6px',
+                          fontSize: '0.75rem'
+                        }
+                      }}
+                      InputLabelProps={{
+                        shrink: true,
+                        style: { fontSize: '0.75rem' }
+                      }}
                     />
                   </Grid>
                   <Grid item xs={6} sm={3}>
@@ -463,7 +551,19 @@ const ContrastOptions = ({
                       onChange={(e) => handleRangeChange(index, 'out_max', e.target.value)}
                       type="number"
                       size="small"
-                      inputProps={{ min: range.out_min + 1, max: 255 }}
+                      margin="dense"
+                      inputProps={{ 
+                        min: range.out_min + 1, 
+                        max: 255,
+                        style: { 
+                          padding: '4px 6px',
+                          fontSize: '0.75rem'
+                        }
+                      }}
+                      InputLabelProps={{
+                        shrink: true,
+                        style: { fontSize: '0.75rem' }
+                      }}
                     />
                   </Grid>
                 </Grid>
@@ -478,42 +578,64 @@ const ContrastOptions = ({
                     size="small"
                     sx={{ 
                       position: 'absolute',
-                      top: 8,
-                      right: 8
+                      top: 2,
+                      right: 2,
+                      padding: '2px'
                     }}
                   >
-                    <RemoveCircleIcon />
+                    <RemoveCircleIcon fontSize="inherit" style={{ fontSize: '1rem' }} />
                   </IconButton>
                 )}
               </Box>
             ))}
 
-            <Box sx={{ display: 'flex', gap: 2, width: '100%', mt: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 0.5, 
+              width: '100%', // Genişliği tam yap
+              height: "24px", 
+              mt: 0.5,
+              justifyContent: 'center' // İçeriği ortala
+            }}>
               <Button
                 variant="outlined"
-                startIcon={<AddCircleIcon />}
+                startIcon={<AddCircleIcon style={{ fontSize: '0.9rem' }} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   addRange();
                 }}
-                fullWidth
-                sx={{ py: 1.5 }}
+                sx={{ 
+                  py: 0.25,
+                  fontSize: '0.7rem',
+                  minHeight: '24px',
+                  width: 'auto' // Genişliği otomatik ayarla
+                }}
               >
-                Bölge Ekle
+                Ekle
               </Button>
               <Button
                 variant="contained"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  minWidth: "60px",
+                  height: "24px",
+                  textTransform: "none",
+                  fontSize: '0.7rem',   
+                  fontWeight: "bold",             
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mx: 0,
+                  p: 0.25
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleMultiLinearSubmit();
                 }}
-                fullWidth
-                sx={{ 
-                  py: 1.5,
-                  backgroundColor: "purple" 
-                }}
               >
-                Multi Linear Contrast Uygula
+                Uygula
               </Button>
             </Box>
           </Box>

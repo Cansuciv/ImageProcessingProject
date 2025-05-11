@@ -117,11 +117,20 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "230px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",             
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation(); // Global click eventini engelle
@@ -133,8 +142,8 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -170,7 +179,7 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -212,51 +221,76 @@ const Translate = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '20ch' },
+              width: "220px",
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1,
+              p: 1,
               border: '1px solid #ddd',
-              borderRadius: 1
+              borderRadius: 1,
+              gap: 1
             }}
             noValidate
             autoComplete="off"
           >
-            <TextField
-              id="dx"
-              label="dx (Horizontal)"
-              variant="outlined"
-              name="dx"
-              value={inputValues.dx}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ min: -1000, max: 1000 }}
-            />
-            <TextField
-              id="dy"
-              label="dy (Vertical)"
-              variant="outlined"
-              name="dy"
-              value={inputValues.dy}
-              onChange={handleInputChange}
-              type="number"
-              inputProps={{ min: -1000, max: 1000 }}
-            />
+            <Box 
+              sx={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 1,
+                alignItems: 'center'
+              }}
+            >
+              <TextField
+                id="dx"
+                label="dx"
+                name="dx"
+                size="small"
+                value={inputValues.dx}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ min: -1000, max: 1000 }}
+                sx={{ width: '70px' }}
+              />
+              <TextField
+                id="dy"
+                label="dy"
+                name="dy"
+                size="small"
+                value={inputValues.dy}
+                onChange={handleInputChange}
+                type="number"
+                inputProps={{ min: -1000, max: 1000 }}
+                sx={{ width: '70px' }}
+              />
+            </Box>
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                textTransform: 'none',
+                color: "#cccccc",            
+                width: "80px",
+                height: "28px",
+                fontSize: 14,
+                fontWeight: "bold",
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple" }}
             >
-              Apply {translateOptions[selectedIndex]}
+              Apply
             </Button>
           </Box>
         </Collapse>
+
       </Box>
     </Box>
   );

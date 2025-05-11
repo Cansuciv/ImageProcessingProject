@@ -136,11 +136,20 @@ const Rotate = ({ processImage, processedImage, originalImage }) => {
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "250px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -152,8 +161,8 @@ const Rotate = ({ processImage, processedImage, originalImage }) => {
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -190,7 +199,7 @@ const Rotate = ({ processImage, processedImage, originalImage }) => {
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -229,66 +238,95 @@ const Rotate = ({ processImage, processedImage, originalImage }) => {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <Collapse in={showInputs}>
-          <Box
-            component="form"
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              mt: 2,
-              p: 2,
-              border: '1px solid #ddd',
-              borderRadius: 1
-            }}
-            noValidate
-            autoComplete="off"
-          >
-            <TextField
-              id="rotation-angle"
-              label="Rotation Angle"
-              variant="outlined"
-              value={angle}
-              onChange={handleAngleChange}
-              type="number"
-              inputProps={{ min: "-360", max: "360" }}
-              sx={{ mb: 2, width: '100%' }}
-            />
-            
-            {selectedIndex === 1 && (
-              <FormControl component="fieldset" sx={{ width: '100%', mb: 2 }}>
-                <FormLabel component="legend">Interpolation Type</FormLabel>
-                <RadioGroup
-                  aria-label="interpolation"
-                  name="interpolation-type"
-                  value={interpolationType}
-                  onChange={handleInterpolationChange}
-                >
-                  {interpolationOptions.map((option) => (
-                    <FormControlLabel 
-                      key={option.value}
-                      value={option.value} 
-                      control={<Radio />} 
-                      label={option.label} 
-                    />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-            )}
-            
-            <Button
-              variant="contained"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleApply();
+        <Box 
+          sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            zIndex: 1,
+            backgroundColor: "white",
+            boxShadow: 3,
+            padding: showInputs ? '16px' : '0',
+            width: '220px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Collapse in={showInputs}>
+            <Box
+              component="form"
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                p: 1, // Padding'i azalttık
+                border: '1px solid #ddd',
+                borderRadius: 1
               }}
-              disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple" }}
+              noValidate
+              autoComplete="off"
             >
-              Apply {rotateOptions[selectedIndex]}
-            </Button>
-          </Box>
-        </Collapse>
+              <TextField
+                id="rotation-angle"
+                label="Rotation Angle"
+                variant="outlined"
+                value={angle}
+                onChange={handleAngleChange}
+                type="number"
+                inputProps={{ min: "-360", max: "360" }}
+                sx={{ mb: 1, width: '100%' }} // Margin-bottom'ı azalttık
+                size="small" // Daha küçük boyut
+              />
+              
+              {selectedIndex === 1 && (
+                <FormControl component="fieldset" sx={{ width: '100%', mb: 1 }}>
+                  <FormLabel component="legend" sx={{ fontSize: '0.8rem' }}>Interpolation Type</FormLabel>
+                  <RadioGroup
+                    aria-label="interpolation"
+                    name="interpolation-type"
+                    value={interpolationType}
+                    onChange={handleInterpolationChange}
+                  >
+                    {interpolationOptions.map((option) => (
+                      <FormControlLabel 
+                        key={option.value}
+                        value={option.value} 
+                        control={<Radio size="small" />} // Daha küçük radio buton
+                        label={<span style={{ fontSize: '0.8rem' }}>{option.label}</span>} // Daha küçük yazı
+                        sx={{ my: 0 }} // Margin'i azalttık
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+              )}
+              
+              <Button
+                variant="contained"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  width: "70px", // Genişliği azalttık
+                  height: "25px", // Yüksekliği azalttık
+                  textTransform: "none",
+                  fontSize: '0.8rem', // Yazı boyutunu küçülttük  
+                  fontWeight: "bold",   
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mx: 0,
+                  mt: 1 // Margin-top ekledik
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApply();
+                }}
+                disabled={isProcessing}
+              >
+                Apply
+              </Button>
+            </Box>
+          </Collapse>
+        </Box>
       </Box>
     </Box>
   );

@@ -64,11 +64,19 @@ const Dilate = ({ processImage, processedImage, originalImage }) => {
     <Box sx={{ position: "relative", display: "inline-block" }}>
       <Button
         variant="contained"
+        disableElevation
         sx={{
-          backgroundColor: "purple",
+          backgroundColor: "#1f2021",  
+          color: "#cccccc",            
+          width: "80px",
+          height: "30px",
           textTransform: "none",
-          fontSize: 18,
-          "&:hover": { backgroundColor: "purple" }
+          fontSize: 17,   
+          fontWeight: "bold",   
+          '&:hover': {
+            backgroundColor: "#2e2f30", 
+          },
+          mx: 0,
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -96,12 +104,12 @@ const Dilate = ({ processImage, processedImage, originalImage }) => {
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '10ch' },
+              '& > :not(style)': { m: 0.5, width: '8ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              mt: 2,
-              p: 2,
+              mt: 1,
+              p: 1,
               border: '1px solid #ddd',
               borderRadius: 1
             }}
@@ -110,35 +118,51 @@ const Dilate = ({ processImage, processedImage, originalImage }) => {
           >
             <TextField
               id="kernel-size"
-              label="Kernel Size"
+              label="Kernel"
               variant="outlined"
               value={params.kernel_size}
               onChange={(e) => handleParamChange("kernel_size", e.target.value)}
               placeholder="3,3"
+              size="small"
             />
             <TextField
               id="iterations"
-              label="Iterations"
+              label="Iter"
               variant="outlined"
               value={params.iterations}
               onChange={(e) => handleParamChange("iterations", e.target.value)}
               type="number"
               inputProps={{ min: 1, step: 1 }}
+              size="small"
             />
             
             <Button
               variant="contained"
+              disableElevation
+              sx={{
+                backgroundColor: "#1f2021",  
+                color: "#cccccc",            
+                width: "70px",
+                height: "25px",
+                textTransform: "none",
+                fontSize: 13,   
+                fontWeight: "bold",   
+                '&:hover': {
+                  backgroundColor: "#2e2f30", 
+                },
+                mt: 1,
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 handleApply();
               }}
               disabled={isProcessing}
-              sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
             >
-              Apply Dilation
+              Apply
             </Button>
           </Box>
         </Collapse>
+
       </Box>
     </Box>
   );

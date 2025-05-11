@@ -164,11 +164,20 @@ const FourierTransformFilter = ({
         aria-label="Button group with a nested menu"
       >
         <Button
+          variant="contained"
+          disableElevation
           sx={{
-            backgroundColor: "purple",
+            backgroundColor: "#1f2021",  
+            color: "#cccccc",            
+            width: "200px",
+            height: "30px",
             textTransform: "none",
-            fontSize: 18,
-            "&:hover": { backgroundColor: "purple" }
+            fontSize: 17,   
+            fontWeight: "bold",   
+            '&:hover': {
+              backgroundColor: "#2e2f30", 
+            },
+            mx: 0,
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -180,8 +189,8 @@ const FourierTransformFilter = ({
 
         <Button
           sx={{
-            backgroundColor: "purple",
-            "&:hover": { backgroundColor: "purple" }
+            backgroundColor: "#1f2021",
+            "&:hover": { backgroundColor: "#2e2f30" }
           }}
           size="small"
           aria-controls={open ? 'split-button-menu' : undefined}
@@ -217,7 +226,7 @@ const FourierTransformFilter = ({
                 placement === 'bottom' ? 'center top' : 'center bottom',
             }}
           >
-            <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+            <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
               <ClickAwayListener onClickAway={handleClose}>
                 <MenuList 
                   id="split-button-menu" 
@@ -254,7 +263,7 @@ const FourierTransformFilter = ({
             backgroundColor: "white",
             boxShadow: 3,
             padding: showInputs ? '20px' : '0',
-            minWidth: 100,
+            width: "160px",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -262,15 +271,16 @@ const FourierTransformFilter = ({
             <Box
               component="form"
               sx={{
-                '& > :not(style)': { m: 1, width: '12ch' },
+                '& > :not(style)': { m: 0.5, width: '10ch' },
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                mt: 2,
-                p: 2,
+                mt: 1,
+                p: 1,
                 border: '1px solid #ddd',
                 borderRadius: 1,
-                width: '70%',
+                width: '140px',
+                backgroundColor: 'white'
               }}
               noValidate
               autoComplete="off"
@@ -279,27 +289,37 @@ const FourierTransformFilter = ({
                 id="radius"
                 label="Radius"
                 variant="outlined"
+                size="small"
                 value={radius}
                 onChange={handleRadiusChange}
                 type="number"
                 inputProps={{ min: 1, max: 100 }}
-                sx={{ width: '100%' }}
+                sx={{ width: '50px' }}
               />
               <Button
                 variant="contained"
+                disableElevation
+                size="small"
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  width: "70px",
+                  height: "25px",
+                  textTransform: "none",
+                  fontSize: 14,   
+                  fontWeight: "bold",   
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mx: 0,
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleApply();
                 }}
                 disabled={isProcessing}
-                sx={{ 
-                  mt: 2, 
-                  backgroundColor: "purple",
-                  "&:hover": { backgroundColor: "purple" },
-                  width: '100%',
-                }}
               >
-                Apply {fourierOptions[selectedIndex]}
+                Apply
               </Button>
             </Box>
           </Collapse>

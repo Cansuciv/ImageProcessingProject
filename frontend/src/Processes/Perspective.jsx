@@ -235,11 +235,20 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
           aria-label="Button group with a nested menu"
         >
           <Button
+            variant="contained"
+            disableElevation
             sx={{
-              backgroundColor: "purple",
+              backgroundColor: "#1f2021",  
+              color: "#cccccc",            
+              width: "290px",
+              height: "30px",
               textTransform: "none",
-              fontSize: 18,
-              "&:hover": { backgroundColor: "purple" }
+              fontSize: 17,   
+              fontWeight: "bold",   
+              '&:hover': {
+                backgroundColor: "#2e2f30", 
+              },
+              mx: 0,
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -251,8 +260,8 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
 
           <Button
             sx={{
-              backgroundColor: "purple",
-              "&:hover": { backgroundColor: "purple" }
+              backgroundColor: "#1f2021",
+              "&:hover": { backgroundColor: "#2e2f30" }
             }}
             size="small"
             aria-controls={open ? 'split-button-menu' : undefined}
@@ -289,7 +298,7 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
                   placement === 'bottom' ? 'center top' : 'center bottom',
               }}
             >
-              <Paper sx={{ backgroundColor: "purple", color: "white" }}>
+              <Paper sx={{ backgroundColor: "#1f2021", color: "#cccccc" }}>
                 <ClickAwayListener onClickAway={handleClose}>
                   <MenuList 
                     id="split-button-menu" 
@@ -324,8 +333,8 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
             zIndex: 1,
             backgroundColor: "white",
             boxShadow: 3,
-            padding: showInputs ? '16px' : '0',
-            width: '320px',
+            padding: showInputs ? '8px' : '0', // padding'i küçülttük
+            width: '280px', // genişliği biraz küçülttük
             display: showInputs ? 'block' : 'none'
           }}
           onClick={(e) => e.stopPropagation()}
@@ -337,8 +346,7 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                mt: 2,
-                p: 2,
+                p: 1, // padding'i küçülttük
                 border: '1px solid #ddd',
                 borderRadius: 1
               }}
@@ -347,66 +355,70 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
             >
               {selectedIndex === 0 ? (
                 <>
-                  <Typography variant="h6" gutterBottom>Perspektif Noktaları</Typography>
+                  <Typography variant="subtitle1" gutterBottom sx={{ fontSize: '0.9rem' }}>Perspektif Noktaları</Typography>
                   <TextField
-                    label="Kaynak Noktalar (pts1)"
+                    label="pts1"
                     value={pts1}
                     onChange={(e) => setPts1(e.target.value)}
                     multiline
-                    rows={4}
+                    rows={3} // satır sayısını azalttık
                     fullWidth
-                    sx={{ mb: 2 }}
-                    helperText="Format: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]"
+                    size="small" // daha küçük boyut
+                    sx={{ mb: 1, fontSize: '0.8rem' }} // margin ve font boyutu
                   />
                   
                   <TextField
-                    label="Hedef Noktalar (pts2)"
+                    label="pts2"
                     value={pts2}
                     onChange={(e) => setPts2(e.target.value)}
                     multiline
-                    rows={4}
+                    rows={3}
                     fullWidth
-                    sx={{ mb: 2 }}
-                    helperText="Format: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]"
+                    size="small"
+                    sx={{ mb: 1, fontSize: '0.8rem' }}
                   />
                   
-                  <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                  <Box sx={{ display: 'flex', gap: 1, width: '100%', mb: 1 }}>
                     <TextField
-                      label="Genişlik"
+                      label="Width"
                       value={width}
                       onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
                       fullWidth
+                      size="small"
                       type="number"
                     />
                     <TextField
-                      label="Yükseklik"
+                      label="Height"
                       value={height}
                       onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
                       fullWidth
+                      size="small"
                       type="number"
                     />
                   </Box>
                 </>
               ) : (
                 <>
-                  <Typography variant="h6" gutterBottom>Çıktı Boyutları</Typography>
-                  <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ fontSize: '0.9rem' }}>Çıktı Boyutları</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, width: '100%', mb: 1 }}>
                     <TextField
-                      label="Genişlik"
+                      label="Width"
                       value={interactiveWidth}
                       onChange={(e) => setInteractiveWidth(parseInt(e.target.value) || 0)}
                       fullWidth
+                      size="small"
                       type="number"
                     />
                     <TextField
-                      label="Yükseklik"
+                      label="Height"
                       value={interactiveHeight}
                       onChange={(e) => setInteractiveHeight(parseInt(e.target.value) || 0)}
                       fullWidth
+                      size="small"
                       type="number"
                     />
                   </Box>
-                  <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontSize: '0.8rem' }}>
                     {clickedPoints.length < 4 ? 
                       `Lütfen resim üzerinde ${4 - clickedPoints.length} nokta daha seçin.` : 
                       "4 nokta seçildi. Uygula butonuna basabilirsiniz."}
@@ -416,14 +428,28 @@ const Perspective = ({ processImage, processedImage, originalImage }) => {
               
               <Button
                 variant="contained"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  width: "70px", // genişliği küçülttük
+                  height: "26px", // yüksekliği küçülttük
+                  textTransform: "none",
+                  fontSize: '0.8rem', // font boyutunu küçülttük  
+                  fontWeight: "bold",   
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mt: 1, // üst margin ekledik
+                  mx: 0,
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleApply();
                 }}
                 disabled={isProcessing || (selectedIndex === 1 && clickedPoints.length !== 4)}
-                sx={{ mt: 2, backgroundColor: "purple", width: '100%' }}
               >
-                Uygula {perspectiveOptions[selectedIndex]}
+                Apply
               </Button>
             </Box>
           )}
