@@ -41,6 +41,7 @@
   import Gabor from './Processes/Gabor.jsx';
   import HoughDonusumu from './Processes/HoughDonusumu.jsx';
   import KmeansSegmentation from './Processes/KmeansSegmentation.jsx';
+  import Erode from './Processes/Erode.jsx';
   import FrameOptions from './Processes/FrameOptions.jsx';
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
@@ -242,6 +243,10 @@
           formData.append("k", value.k.toString());
           formData.append("max_iter", value.max_iter.toString());
           formData.append("epsilon", value.epsilon.toString());
+        }
+        if (operation === "erode" && value) {
+          formData.append("kernel_size", value.kernel_size.toString());
+          formData.append("iterations", value.iterations.toString());
         }
 
 
@@ -827,6 +832,12 @@ const backToOriginalImage = () => {
               processedImage={processedImage}
             />
             <KmeansSegmentation
+              processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
+              originalImage={originalImage}
+              processedIm
+              age={processedImage}
+            />
+            <Erode
               processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)}
               originalImage={originalImage}
               processedImage={processedImage}

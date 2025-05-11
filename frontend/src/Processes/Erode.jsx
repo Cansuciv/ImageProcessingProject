@@ -4,19 +4,18 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Collapse from '@mui/material/Collapse';
 
-const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => {
+const Erode = ({ processImage, processedImage, originalImage }) => {
   const [showInputs, setShowInputs] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [params, setParams] = useState({
-    k: "3",
-    max_iter: "100",
-    epsilon: "0.2"
+    kernel_size: "3,3",  // Varsayılan değer artık "3,3" formatında
+    iterations: "1"
   });
 
   // Close inputs when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showInputs && !event.target.closest('.filter-input-container')) {
+      if (showInputs && !event.target.closest('.erode-input-container')) {
         setShowInputs(false);
       }
     };
@@ -36,32 +35,30 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
 
   const handleApply = async () => {
     if (!processedImage && !originalImage) {
-        console.error("No image available");
-        return;
+      console.error("No image available");
+      return;
     }
 
     setIsProcessing(true);
     
     try {
-        const processedParams = {
-            k: parseInt(params.k),
-            max_iter: parseInt(params.max_iter),
-            epsilon: parseFloat(params.epsilon)
-        };
+      const [kernelX, kernelY] = params.kernel_size.split(',').map(Number);
+      const processedParams = {
+        kernel_size: `${kernelX},${kernelY}`,  // "x,y" formatında string olarak gönder
+        iterations: parseInt(params.iterations)
+      };
 
-        const operation = `kmeans_segmentation`;
-        
-        const success = await processImage(operation, processedParams);
-        
-        if (success) {
-            setShowInputs(false);
-        }
+      const success = await processImage("erode", processedParams);
+      
+      if (success) {
+        setShowInputs(false);
+      }
     } catch (error) {
-        console.error("K-means Segmentation error:", error);
+      console.error("Erode error:", error);
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
-};
+  };
 
   return (
     <Box sx={{ position: "relative", display: "inline-block" }}>
@@ -78,11 +75,11 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
           setShowInputs(!showInputs);
         }}
       >
-        K-means Segmentation
+        Erode
       </Button>
 
       <Box 
-        className="filter-input-container"
+        className="erode-input-container"
         sx={{
           position: "absolute",
           left: 0,
@@ -90,7 +87,8 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
           zIndex: 1,
           backgroundColor: "white",
           boxShadow: 3,
-          padding: showInputs ? '20px' : '0'
+          padding: showInputs ? '20px' : '0',
+          width: '90px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -98,7 +96,7 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
+              '& > :not(style)': { m: 1, width: '10ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -111,31 +109,21 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
             autoComplete="off"
           >
             <TextField
-              id="k"
-              label="K (Clusters)"
-              variant="outlined"
-              value={params.k}
-              onChange={(e) => handleParamChange("k", e.target.value)}
-              type="number"
-              inputProps={{ min: 2, step: 1 }}
+            id="kernel-size"
+            label="Ksize"
+            variant="outlined"
+            value={params.kernel_size}
+            onChange={(e) => handleParamChange("kernel_size", e.target.value)}
+            type="text" // Değişiklik burada
             />
             <TextField
-              id="max_iter"
-              label="Max Iterations"
+              id="iterations"
+              label="Iterations"
               variant="outlined"
-              value={params.max_iter}
-              onChange={(e) => handleParamChange("max_iter", e.target.value)}
+              value={params.iterations}
+              onChange={(e) => handleParamChange("iterations", e.target.value)}
               type="number"
               inputProps={{ min: 1, step: 1 }}
-            />
-            <TextField
-              id="epsilon"
-              label="Epsilon"
-              variant="outlined"
-              value={params.epsilon}
-              onChange={(e) => handleParamChange("epsilon", e.target.value)}
-              type="number"
-              inputProps={{ min: 0, step: 0.1 }}
             />
             
             <Button
@@ -147,7 +135,7 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
               disabled={isProcessing}
               sx={{ mt: 2, backgroundColor: "purple", "&:hover": { backgroundColor: "purple" } }}
             >
-              Apply Segmentation
+              Apply Erosion
             </Button>
           </Box>
         </Collapse>
@@ -156,4 +144,4 @@ const KmeansSegmentation = ({ processImage, processedImage, originalImage }) => 
   );
 };
 
-export default KmeansSegmentation;
+export default Erode;

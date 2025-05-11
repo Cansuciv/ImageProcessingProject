@@ -1471,6 +1471,26 @@ def kmeans_segmentation(image, k, max_iter, epsilon):
         print(f"K-Means Error: {str(e)}")
         raise e
     
+
+def erode(image, kernel_size, iterations):
+    try:
+        # Kernel boyutunu "x,y" formatında al ve tuple'a çevir
+        if isinstance(kernel_size, str):
+            kx, ky = map(int, kernel_size.split(','))
+        else:
+            kx, ky = kernel_size, kernel_size  # Geriye uyumluluk
+        
+        # Kernel oluştur
+        kernel = np.ones((kx, ky), np.uint8)
+        
+        # Erozyon uygula
+        eroded = cv2.erode(image, kernel, iterations=iterations)
+        
+        return eroded
+    except Exception as e:
+        print(f"Erosion error: {str(e)}")
+        raise e
+    
 # Resmi işleme fonksiyonları
 def process_image(image, operation, value=None):
     if operation == "convert_gray":
@@ -1660,6 +1680,10 @@ def process_image(image, operation, value=None):
         max_iter = int(value.get("max_iter", 100))
         epsilon = float(value.get("epsilon", 0.2))
         return kmeans_segmentation(image, k, max_iter, epsilon)
+    elif operation == "erode":
+        kernel_size = int(request.form.get("kernel_size", (3,3)))
+        iterations = int(request.form.get("iterations", 1))
+        return erode(image, (kernel_size, kernel_size), iterations)
     
 @app.route("/process", methods=["POST"])
 def process():
@@ -2702,7 +2726,34 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+
+
+    # Handle erosion
+    if operation == "erode":
+        try:
+            kernel_size = request.form.get("kernel_size", "3,3")
+            iterations = int(request.form.get("iterations", 1))
             
+            # Read image
+            img_bytes = file.read()
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                return jsonify({"error": "Invalid image"}), 400
+                
+            # Process image
+            processed_img = erode(image, kernel_size, iterations)
+            
+            # Encode and return image
+            _, img_buffer = cv2.imencode('.jpg', processed_img)
+            return send_file(
+                io.BytesIO(img_buffer.tobytes()),
+                mimetype="image/jpeg"
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
                         
     # Rest of your existing process function...
     value = request.form.get("value")
