@@ -147,7 +147,7 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
             value={cropValues.y1}
             onChange={handleInputChange}
             type="number"
-            sx={{ width: '60px' }}
+            sx={{ width: '70px' }}
           />
           
           <TextField
@@ -159,7 +159,7 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
             value={cropValues.y2}
             onChange={handleInputChange}
             type="number"
-            sx={{ width: '60px' }}
+            sx={{ width: '70px' }}
           />
           
           <TextField
@@ -171,7 +171,7 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
             value={cropValues.x1}
             onChange={handleInputChange}
             type="number"
-            sx={{ width: '60px' }}
+            sx={{ width: '70px' }}
           />
           
           <TextField
@@ -183,7 +183,7 @@ const CropImage = ({ processImage, processedImage, originalImage }) => {
             value={cropValues.x2}
             onChange={handleInputChange}
             type="number"
-            sx={{ width: '60px' }}
+            sx={{ width: '70px' }}
           />
         </Box>
         

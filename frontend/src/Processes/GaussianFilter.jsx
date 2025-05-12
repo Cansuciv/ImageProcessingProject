@@ -58,44 +58,44 @@ export default function GaussianFilter({
   };
 
   const handleApply = async () => {
-    if (!processedImage && !originalImage) {
-      console.error("No image available");
-      return false;
+  if (!originalImage) {
+    console.error("No image available");
+    return false;
+  }
+
+  setIsProcessing(true);
+  let operation;
+  let value = D0.toString();
+
+  try {
+    switch (selectedIndex) {
+      case 0: // Gaussian LPF
+        operation = "gaussian_lpf";
+        await processImage(operation, value, originalImage); // Force use original image
+        break;
+      case 1: // Gaussian HPF
+        operation = "gaussian_hpf";
+        await processImage(operation, value, originalImage); // Force use original image
+        break;
+      case 2: // Gaussian Grafik
+        operation = "gaussian_plot";
+        const plotImage = await processImage(operation, value, originalImage);
+        if (plotImage) {
+          setGaussianFilterPlotImage(plotImage);
+          setShowGaussianFilterPlot(true);
+        }
+        break;
+      default:
+        return false;
     }
-  
-    setIsProcessing(true);
-    let operation;
-    let value = D0.toString();
-  
-    try {
-      switch (selectedIndex) {
-        case 0: // Gaussian LPF
-          operation = "gaussian_lpf";
-          await processImage(operation, value);
-          break;
-        case 1: // Gaussian HPF
-          operation = "gaussian_hpf";
-          await processImage(operation, value);
-          break;
-        case 2: // Gaussian Grafik
-          operation = "gaussian_plot";
-          const plotImage = await processImage(operation, value);
-          if (plotImage) {
-            setGaussianFilterPlotImage(plotImage);
-            setShowGaussianFilterPlot(true);
-          }
-          break;
-        default:
-          return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Gaussian filter error:", error);
-      return false;
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    return true;
+  } catch (error) {
+    console.error("Gaussian filter error:", error);
+    return false;
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   useEffect(() => {
     const handleGlobalClick = () => {

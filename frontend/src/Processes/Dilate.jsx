@@ -95,7 +95,7 @@ const Dilate = ({ processImage, processedImage, originalImage }) => {
           zIndex: 1,
           backgroundColor: "white",
           boxShadow: 3,
-          padding: showInputs ? '20px' : '0',
+          padding: showInputs ? '2px' : '0',
           width: '90px'
         }}
         onClick={(e) => e.stopPropagation()}

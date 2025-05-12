@@ -23,7 +23,7 @@ export default function Mirroring({ processImage, originalImage, processedImage 
   const [open, setOpen] = useState(false);
   const anchorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [angle, setAngle] = useState(45);
+  const [angle, setAngle] = useState(30);
   const [showAngleInput, setShowAngleInput] = useState(false);
 
   const handleToggle = () => {

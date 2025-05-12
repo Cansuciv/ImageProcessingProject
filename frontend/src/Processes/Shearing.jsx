@@ -22,7 +22,7 @@
         const [selectedIndex, setSelectedIndex] = useState(0);
         const [showInputs, setShowInputs] = useState(false);
         const [isProcessing, setIsProcessing] = useState(false);
-        const [inputValue, setInputValue] = useState(0.5);
+        const [inputValue, setInputValue] = useState(-0.5);
       
         const handleToggle = () => {
           setOpen((prevOpen) => !prevOpen);

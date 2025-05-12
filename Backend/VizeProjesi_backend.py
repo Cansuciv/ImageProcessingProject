@@ -83,6 +83,21 @@ def adjust_brightness(img, brightness):
     return img
 
 
+def brightness2(image, value):
+    """Adjust brightness of an image with a given value (-255 to 255)"""
+    if len(image.shape) == 3:  # Color image
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        
+        # Adjust brightness in V channel
+        v = cv2.add(v, value)
+        v = np.clip(v, 0, 255)
+        
+        hsv = cv2.merge((h, s, v))
+        return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    else:  # Grayscale image
+        return cv2.add(image, value)
+
 def thresholding(image, threshold):
     x,y,z = image.shape
     for i in range(x):
@@ -183,19 +198,9 @@ def manual_translate(image, dx, dy):
     h, w = image.shape[:2]
     moved_image = np.zeros_like(image)
     
-    # Calculate new positions
-    x_start = max(dx, 0)
-    y_start = max(dy, 0)
-    x_end = min(w, w + dx)
-    y_end = min(h, h + dy)
-    
-    # Original positions
-    orig_x_start = max(-dx, 0)
-    orig_y_start = max(-dy, 0)
-    orig_x_end = min(w, w - dx)
-    orig_y_end = min(h, h - dy)
-    
-    moved_image[y_start:y_end, x_start:x_end] = image[orig_y_start:orig_y_end, orig_x_start:orig_x_end]
+    for y in range(h - dy):
+        for x in range(w - dx):
+            moved_image[y + dy, x + dx] = image[y, x]
     return moved_image
 
 def functional_translate(image, dx, dy):
@@ -367,6 +372,8 @@ def crop_image(image, y1, y2, x1, x2):
 
 #perspektif düzeltme
 def perspektif_duzeltme(image, pts1, pts2, width, height):
+    pts1 = np.float32(pts1)
+    pts2 = np.float32(pts2)
     # Perspektif dönüşüm matrisini hesapla
     matrix = cv2.getPerspectiveTransform(pts1, pts2)
     # Perspektif dönüşümü uygula
@@ -482,7 +489,7 @@ def fourier_transform(image):
         f_transform_shifted = np.fft.fftshift(f_transform)
         
         # Magnitude spektrumunu hesapla (log scale)
-        magnitude_spectrum = np.log(np.abs(f_transform_shifted) + 1)
+        magnitude_spectrum = np.log(np.abs(f_transform_shifted))
         magnitude_spectrum_normalized = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         
         f_transforms.append(f_transform_shifted)
@@ -573,7 +580,7 @@ def fourier_filter_plot(image, radius):
             f_transform = np.fft.fft2(ch)
             f_transform_shifted = np.fft.fftshift(f_transform)
 
-            magnitude = 20 * np.log(np.abs(f_transform_shifted) + 1)
+            magnitude = 20 * np.log(np.abs(f_transform_shifted))
             spectrum_channels.append(magnitude)
 
             rows, cols = ch.shape
@@ -1540,6 +1547,8 @@ def process_image(image, operation, value=None):
         return negative_image(image)
     elif operation == "brightness" and value is not None:
         return adjust_brightness(image, value)
+    elif operation == "brightness2" and value is not None:
+        return brightness2(image, value)
     elif operation == "thresholding" and value is not None:
         return thresholding(image, value)
     elif operation == "histogram":
@@ -2849,6 +2858,8 @@ def process():
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+    
                             
     # Rest of your existing process function...
     value = request.form.get("value")

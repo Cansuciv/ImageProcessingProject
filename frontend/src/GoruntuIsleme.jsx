@@ -1,12 +1,16 @@
-  import React, { useState } from "react";
-  import { Box } from "@mui/material";
-  import Typography from "@mui/material/Typography";
-  import axios from "axios";
-  import Button from '@mui/material/Button';
+import React, { useState, useRef, useEffect } from 'react';
+import { Box } from "@mui/material";
+import Typography from "@mui/material/Typography";
+import axios from "axios";
+import Button from '@mui/material/Button';
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
+import IconButton from '@mui/material/IconButton';
 
   import UploadFile from './Processes/UploadFile.jsx';
   import BackToOriginal from './Processes/BackToOriginal.jsx';
   import Kaydet from './Processes/Kaydet.jsx';
+  import GrafikKaydet from './Processes/GrafikKaydet';
   import ConvertToGray from './Processes/ConvertToGray.jsx';
   import RedFilter from './Processes/RedFilter.jsx';
   import GreenFilter from './Processes/GreenFilter.jsx';
@@ -45,7 +49,8 @@
   import Erode from './Processes/Erode.jsx';
   import Dilate from './Processes/Dilate.jsx';
   import Frame from './Processes/Frame.jsx';
-  import FrameOptions from './Processes/FrameOptions.jsx';
+  import Parlaklik2 from './Processes/Parlaklik2.jsx';
+
 
   const optionsContrast = ['Linear Contrast Stretching', 'Manual Contrast Stretching', 'Multi Linear Contrast'];
 
@@ -79,6 +84,8 @@
     const [showPrewittPlot, setShowPrewittPlot] = useState(false);
     const [robertsPlotImage, setRobertsPlotImage] = useState(null);
     const [showRobertslot, setShowRobertsPlot] = useState(false);
+    const [parlaklik2On, setParlaklik2On] = useState(false);
+    const [parlaklik2Value, setParlaklik2Value] = useState(0);
 
     const processImage = async (operation, value = null) => {
       const formData = new FormData();
@@ -90,9 +97,9 @@
           ["fourier_transform", "fourier_low_pass_filter", "fourier_high_pass_filter", 
           "fourier_filter_plot", "band_gecirendurduran_plot", "gaussianFilterPlotImage",
           "homomorphic_filter", "sobel_plot", "prewitt_plot", "roberts_plot",
-          "compass_edge_detection", "canny", "gabor_filter"].includes(operation)
+          "compass_edge_detection", "canny", "gabor_filter","gaussian_plot", "gaussian_hpf", "gaussian_lpf","gaussian_filter"].includes(operation)
             ? (processedImage || originalImage)
-            : (["brightness", "thresholding", "manual_translate", "functional_translate",
+            : (["brightness", "brightness2", "thresholding", "manual_translate", "functional_translate",
                 "shear_x", "shearing_x_manuel", "shear_y", "shearing_y_manuel", 
                 "crimmins_speckle_filter"].includes(operation)
                 ? (baseImage || originalImage)
@@ -113,6 +120,9 @@
     
         // Add specific parameters
         if (operation === "brightness" && value !== null) {
+            formData.append("value", value.toString());
+        }
+        if (operation === "brightness2" && value !== null) {
             formData.append("value", value.toString());
         }
         if (operation === "thresholding" && value !== null) {
@@ -197,7 +207,7 @@
         if (operation.includes("butterworth") && value !== null) {
           formData.append("value", value.toString());
         }
-        if (["gaussian_lpf", "gaussian_hpf", "i"].includes(operation) && value !== null) {
+        if (["gaussian_lpf", "gaussian_hpf", "gaussian_plot"].includes(operation) && value !== null) {
           formData.append("value", value.toString());
         }
         if (operation.includes("homomorphic_filter") && value) {
@@ -494,6 +504,10 @@ const backToOriginalImage = () => {
       setBrightnessValue(newValue);
       processImage("brightness", newValue);
     };
+        const handleParlaklik2Change = (event, newValue) => {
+        setParlaklik2Value(newValue);
+        processImage("brightness2", newValue);
+    };
 
     const handleThresholdingChange = (event, newValue) => {
       setThresholdingValue(newValue);
@@ -510,6 +524,49 @@ const backToOriginalImage = () => {
         processFn(operation, value);
       }
     };
+
+
+
+  const CloseableImageBox = ({ title, image, onClose, alt }) => {
+    return (
+      <Box sx={{ position: 'relative', display: 'inline-block' }}>
+        {/* Kapatma butonu sol üstte */}
+        <Button 
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 32,
+            height: 32,
+            minWidth: 'auto',
+            padding: 0,
+            color: 'white',
+            backgroundColor: '#f44336',
+            borderRadius: '4px',
+            fontSize: '20px',
+            lineHeight: 1,
+            fontWeight: 'bold',
+            zIndex: 1,
+            '&:hover': {
+              backgroundColor: '#d32f2f',
+            }
+          }}
+        >
+          ×
+        </Button>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="h6" color="white">{title}</Typography>
+          <img src={image} alt={alt} style={{ marginTop: 10 }} />
+          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+            <GrafikKaydet grafikImage={image} />
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
 
 
     const [open, setOpen] = React.useState(false);
@@ -569,6 +626,48 @@ const backToOriginalImage = () => {
       }
     };
 
+  const [expandedComponents, setExpandedComponents] = useState({});
+  const [containerHeight, setContainerHeight] = useState('auto');
+  const buttonsContainerRef = useRef(null);
+
+  // Yükseklik güncelleme işlemi
+  useEffect(() => {
+    if (buttonsContainerRef.current) {
+      // Container'ın yüksekliğini içeriğe göre ayarla
+      setContainerHeight(buttonsContainerRef.current.scrollHeight);
+    }
+  }, [expandedComponents]); // expandedComponents değiştiğinde çalışacak
+
+  // Bileşenin genişletilmiş durumunu değiştir
+  const toggleComponentExpansion = (componentName) => {
+    setExpandedComponents(prev => ({
+      ...prev,
+      [componentName]: !prev[componentName]
+    }));
+  };
+
+  // Scroll fonksiyonu
+  const scrollButtons = (direction) => {
+    const container = buttonsContainerRef.current;
+    const scrollAmount = 300;
+
+    if (container) {
+      if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      } else {
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        const isAtEnd = container.scrollLeft + scrollAmount >= maxScrollLeft;
+
+        if (isAtEnd) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
+
 
 
     return (
@@ -598,68 +697,82 @@ const backToOriginalImage = () => {
 
 
               {/* Diğer grafikler (histogram vb.) */}
-              {(histogramImage || histogramEqualizationImage ||fourierHistogramImage
-               || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage
+              {(histogramImage || histogramEqualizationImage || fourierHistogramImage
+                || bandFilterPlotImage || butterworthFilterPlotImage || gaussianFilterPlotImage
                 || sobelPlotImage || prewittPlotImage || robertsPlotImage) && (
                 <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
                   {histogramImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Histogram Grafiği</Typography>
-                      <img src={histogramImage} alt="Histogram" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Histogram Grafiği"
+                      image={histogramImage}
+                      alt="Histogram"
+                      onClose={() => setHistogramImage(null)}
+                    />
                   )}
                   {histogramEqualizationImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Eşitlenmiş Histogram</Typography>
-                      <img src={histogramEqualizationImage} alt="Eşitlenmiş Histogram" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Eşitlenmiş Histogram"
+                      image={histogramEqualizationImage}
+                      alt="Eşitlenmiş Histogram"
+                      onClose={() => setHistogramEqualizationImage(null)}
+                    />
                   )}
-
                   {fourierHistogramImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Fourier Spektrumu</Typography>
-                      <img src={fourierHistogramImage} alt="Fourier Spektrumu" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Fourier Spektrumu"
+                      image={fourierHistogramImage}
+                      alt="Fourier Spektrumu"
+                      onClose={() => setFourierHistogramImage(null)}
+                    />
                   )}
-
                   {bandFilterPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Band Filtre Grafiği</Typography>
-                      <img src={bandFilterPlotImage} alt="Band Filtre Grafiği" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Band Filtre Grafiği"
+                      image={bandFilterPlotImage}
+                      alt="Band Filtre Grafiği"
+                      onClose={() => setBandFilterPlotImage(null)}
+                    />
                   )}
-
                   {butterworthFilterPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Butterworth Filtre Grafiği</Typography>
-                      <img src={butterworthFilterPlotImage} alt="Butterworth Filtre Grafiği" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Butterworth Filtre Grafiği"
+                      image={butterworthFilterPlotImage}
+                      alt="Butterworth Filtre Grafiği"
+                      onClose={() => setButterworthFilterPlotImage(null)}
+                    />
                   )}
                   {gaussianFilterPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Gaussian Filtre Grafiği</Typography>
-                      <img src={gaussianFilterPlotImage} alt="Gaussian Filtre Grafiği" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Gaussian Filtre Grafiği"
+                      image={gaussianFilterPlotImage}
+                      alt="Gaussian Filtre Grafiği"
+                      onClose={() => setGaussianFilterPlotImage(null)}
+                    />
                   )}
                   {sobelPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Sobel Grafikleri</Typography>
-                      <img src={sobelPlotImage} alt="Sobel Grafikleri" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Sobel Grafikleri"
+                      image={sobelPlotImage}
+                      alt="Sobel Grafikleri"
+                      onClose={() => setSobelPlotImage(null)}
+                    />
                   )}
                   {prewittPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Prewitt Grafikleri</Typography>
-                      <img src={prewittPlotImage} alt="Prewitt Grafikleri" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Prewitt Grafikleri"
+                      image={prewittPlotImage}
+                      alt="Prewitt Grafikleri"
+                      onClose={() => setPrewittPlotImage(null)}
+                    />
                   )}
                   {robertsPlotImage && (
-                    <Box>
-                      <Typography variant="h6" color="white">Roberts Grafikleri</Typography>
-                      <img src={robertsPlotImage} alt="Roberts Grafikleri" style={{ marginTop: 10 }} />
-                    </Box>
+                    <CloseableImageBox
+                      title="Roberts Grafikleri"
+                      image={robertsPlotImage}
+                      alt="Roberts Grafikleri"
+                      onClose={() => setRobertsPlotImage(null)}
+                    />
                   )}
-                  
                 </Box>
               )}
             </Box>
@@ -672,7 +785,41 @@ const backToOriginalImage = () => {
             <Kaydet processedImage={processedImage} originalImage={originalImage} />
           </Box>
 
-          <Box display="flex" flexWrap="wrap" justifyContent="flex-start" gap={1} marginTop="50px" textTransform={"none"}>
+          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: '50px' }}>
+        <IconButton onClick={() => scrollButtons('left')} sx={{ color: 'white' }}>
+          <KeyboardDoubleArrowLeftIcon fontSize="large" />
+        </IconButton>
+        
+        <Box
+          ref={buttonsContainerRef}
+          sx={{
+            display: 'flex',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            scrollBehavior: 'smooth',
+            gap: 1,
+            px: 1,
+            py: 2,
+            height: "350px", // Dinamik yükseklik
+            transition: 'height 0.3s ease', // Yumuşak geçiş efekti
+            '& > *': {
+              flexShrink: 0,
+            },
+            '&::-webkit-scrollbar': {
+              height: '8px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              backgroundColor: '#555',
+            },
+          }}
+        >
+
+
+
             <ConvertToGray processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <RedFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
             <GreenFilter processImage={(operation) => handleProcessButtonClick(operation, processImage)} />
@@ -696,6 +843,12 @@ const backToOriginalImage = () => {
                 setShowMultiLinearInputs(false);
                 handleBrightnessChange(event, newValue);
               }}
+            />
+            <Parlaklik2
+                parlaklik2On={parlaklik2On}
+                setParlaklik2On={setParlaklik2On}
+                parlaklik2Value={parlaklik2Value}
+                handleParlaklik2Change={handleParlaklik2Change}
             />
 
             <Thresholding
@@ -872,22 +1025,11 @@ const backToOriginalImage = () => {
               originalImage={originalImage}
               processedImage={processedImage}
             />
-                                      
+          </Box>
+          <IconButton onClick={() => scrollButtons('right')} sx={{ color: 'white' }}>
+            <KeyboardDoubleArrowRightIcon fontSize="large" />
+          </IconButton>
 
-            {/*
-          <FrameOptions 
-            options={optionsFrame} 
-            onOperationSelect={(operation) => {
-              setShowManualInputs(false);
-              setShowMultiLinearInputs(false);
-              handleFrameOperationSelect(operation);
-            }} 
-          /> */}
-            {/*
-          <CropImage 
-            processImage={(operation, value) => handleProcessButtonClick(operation, processImage, value)} 
-            selectedFrame={selectedFrame} 
-          />*/}
           </Box>
         </Box>
       </Box>

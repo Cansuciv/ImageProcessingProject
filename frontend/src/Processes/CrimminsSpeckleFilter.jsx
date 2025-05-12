@@ -7,7 +7,7 @@ import Collapse from '@mui/material/Collapse';
 const CrimminsSpeckleFilter = ({ processImage, processedImage, originalImage }) => {
   const [showInputs, setShowInputs] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [thresholdValue, setThresholdValue] = useState("10");
+  const [thresholdValue, setThresholdValue] = useState("20");
 
   // Close inputs when clicking outside
   useEffect(() => {

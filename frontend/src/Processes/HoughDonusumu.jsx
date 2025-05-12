@@ -244,147 +244,158 @@ export default function HoughDonusumu({
           <Box
             component="form"
             sx={{
-              '& > :not(style)': { m: 1, width: '12ch' },
+              '& > :not(style)': { m: 1, width: '32ch' },
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               mt: 2,
-              p: 2,
+              p: 3,
               border: '1px solid #ddd',
               borderRadius: 1,
-              width: '70%',
+              width: '220px',
+              backgroundColor: 'white',
             }}
             noValidate
             autoComplete="off"
           >
-            {selectedIndex === 0 ? (
-              <>
-                <TextField
-                  label="Threshold"
-                  type="number"
-                  name="threshold"
-                  value={lineParams.threshold}
-                  onChange={handleLineParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Angle Resolution"
-                  type="number"
-                  name="angle_resolution"
-                  value={lineParams.angle_resolution}
-                  onChange={handleLineParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Canny Threshold1"
-                  type="number"
-                  name="canny_threshold1"
-                  value={lineParams.canny_threshold1}
-                  onChange={handleLineParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Canny Threshold2"
-                  type="number"
-                  name="canny_threshold2"
-                  value={lineParams.canny_threshold2}
-                  onChange={handleLineParamChange}
-                  fullWidth
-                />
-              </>
-            ) : (
-              <>
-                <TextField
-                  label="dp"
-                  type="number"
-                  step="0.1"
-                  name="dp"
-                  value={circleParams.dp}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="minDist"
-                  type="number"
-                  name="minDist"
-                  value={circleParams.minDist}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="param1"
-                  type="number"
-                  name="param1"
-                  value={circleParams.param1}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="param2"
-                  type="number"
-                  name="param2"
-                  value={circleParams.param2}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="minRadius"
-                  type="number"
-                  name="minRadius"
-                  value={circleParams.minRadius}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="maxRadius"
-                  type="number"
-                  name="maxRadius"
-                  value={circleParams.maxRadius}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Blur ksize"
-                  type="number"
-                  name="blur_ksize"
-                  value={circleParams.blur_ksize}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-                <TextField
-                  label="Blur sigma"
-                  type="number"
-                  name="blur_sigma"
-                  value={circleParams.blur_sigma}
-                  onChange={handleCircleParamChange}
-                  fullWidth
-                />
-              </>
-            )}
-            <Button
-              variant="contained"
-              disableElevation
-              sx={{
-                backgroundColor: "#1f2021",  
-                color: "#cccccc",            
-                width: "80px",
-                height: "30px",
-                textTransform: "none",
-                fontSize: 17,   
-                fontWeight: "bold",   
-                '&:hover': {
-                  backgroundColor: "#2e2f30", 
-                },
-                mx: 0,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleApply();
-              }}
-              disabled={isProcessing}
-            >
-              Apply
-            </Button>
+            <Box sx={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '8px',
+              width: '150px',
+              marginBottom: '16px'
+            }}>
+              {selectedIndex === 0 ? (
+                <>
+                  <TextField
+                    label="Threshold"
+                    type="number"
+                    name="threshold"
+                    size="small"
+                    value={lineParams.threshold}
+                    onChange={handleLineParamChange}
+                  />
+                  <TextField
+                    label="Angle Resolution"
+                    type="number"
+                    name="angle_resolution"
+                    size="small"
+                    value={lineParams.angle_resolution}
+                    onChange={handleLineParamChange}
+                  />
+                  <TextField
+                    label="Canny Threshold1"
+                    type="number"
+                    name="canny_threshold1"
+                    size="small"
+                    value={lineParams.canny_threshold1}
+                    onChange={handleLineParamChange}
+                  />
+                  <TextField
+                    label="Canny Threshold2"
+                    type="number"
+                    name="canny_threshold2"
+                    size="small"
+                    value={lineParams.canny_threshold2}
+                    onChange={handleLineParamChange}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="dp"
+                    type="number"
+                    step="0.1"
+                    name="dp"
+                    size="small"
+                    value={circleParams.dp}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="minDist"
+                    type="number"
+                    name="minDist"
+                    size="small"
+                    value={circleParams.minDist}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="param1"
+                    type="number"
+                    name="param1"
+                    size="small"
+                    value={circleParams.param1}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="param2"
+                    type="number"
+                    name="param2"
+                    size="small"
+                    value={circleParams.param2}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="minRadius"
+                    type="number"
+                    name="minRadius"
+                    size="small"
+                    value={circleParams.minRadius}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="maxRadius"
+                    type="number"
+                    name="maxRadius"
+                    size="small"
+                    value={circleParams.maxRadius}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="Blur ksize"
+                    type="number"
+                    name="blur_ksize"
+                    size="small"
+                    value={circleParams.blur_ksize}
+                    onChange={handleCircleParamChange}
+                  />
+                  <TextField
+                    label="Blur sigma"
+                    type="number"
+                    name="blur_sigma"
+                    size="small"
+                    value={circleParams.blur_sigma}
+                    onChange={handleCircleParamChange}
+                  />
+                </>
+              )}
+            </Box>
+            <Box sx={{width:"50px"}}>
+                <Button
+                variant="contained"
+                disableElevation
+                sx={{
+                  backgroundColor: "#1f2021",  
+                  color: "#cccccc",            
+                  width: "50px",
+                  height: "36px",
+                  textTransform: "none",
+                  fontSize: 16,   
+                  fontWeight: "bold",   
+                  '&:hover': {
+                    backgroundColor: "#2e2f30", 
+                  },
+                  mt: 1,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApply();
+                }}
+                disabled={isProcessing}
+              >
+                Apply
+              </Button>
+            </Box>
           </Box>
         </Collapse>
       </Box>
